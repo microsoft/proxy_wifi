@@ -38,8 +38,13 @@ inline std::unique_ptr<OperationHandler> MakeWlansvcOperationHandler(std::shared
                 LOG_CAUGHT_EXCEPTION_MSG("Failed to initialize a wlansvc interface. Skipping it.");
             }
         }
+        return std::make_unique<WlansvcOperationHandler>(std::move(callbacks), std::move(wlanInterfaces), wlansvc);
     }
-    return std::make_unique<WlansvcOperationHandler>(std::move(callbacks), std::move(wlanInterfaces), wlansvc);
+    else
+    {
+        // Without wlansvc, we can't handle interfaces arrival/departures anyway, so an `OperationHandler` is enough
+        return std::make_unique<OperationHandler>(std::move(callbacks), std::move(wlanInterfaces));
+    }
 }
 
 inline std::unique_ptr<OperationHandler> MakeManualTestOperationHandler(ProxyWifiCallbacks callbacks)
