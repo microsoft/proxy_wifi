@@ -18,6 +18,11 @@ public:
     WlansvcOperationHandler(ProxyWifiCallbacks callbacks, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces, std::shared_ptr<Wlansvc::WlanApiWrapper>& wlansvc)
         : OperationHandler{std::move(callbacks), std::move(wlanInterfaces)}, m_wlansvc{wlansvc}
     {
+        if (!m_wlansvc)
+        {
+            return;
+        }
+
         m_wlansvc->Subscribe(GUID{}, [this](const auto& n) {
             if (n.NotificationSource == WLAN_NOTIFICATION_SOURCE_ACM)
             {
@@ -47,7 +52,10 @@ public:
 
     virtual ~WlansvcOperationHandler()
     {
-        m_wlansvc->Unsubscribe(GUID{});
+        if (m_wlansvc)
+        {
+            m_wlansvc->Unsubscribe(GUID{});
+        }
     }
 
 private:

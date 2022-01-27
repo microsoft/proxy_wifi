@@ -69,6 +69,12 @@ DisconnectRequest MakeDisconnectRequest(uint32_t sessionId)
 
 // Tests for WlansvcOperationHandler.cpp
 
+TEST_CASE("The WlanApiWrapper is optionnal", "[wlansvcOpHandler]")
+{
+    auto opHandler = MakeWlansvcOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper>{}, {});
+    CHECK(opHandler);
+}
+
 TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
 {
     auto body = std::vector<uint8_t>(sizeof(proxy_wifi_scan_request));
