@@ -38,7 +38,7 @@ set(WIL_BUILD_PACKAGING OFF CACHE INTERNAL "Turn off wil packaging")
 FetchContent_Declare(WIL
     GIT_REPOSITORY "https://github.com/microsoft/wil"
     GIT_TAG "f9284c19c9873664978b873b8858d7dfacc6af1e"
-    GIT_SHALLOW ON
+    GIT_SHALLOW OFF
 )
 FetchContent_MakeAvailable(WIL)
 
