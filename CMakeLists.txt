@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Detect if proxy-wifi is being used by another project
-if(NOT PARENT_DIRECTORY)
+if(NOT DEFINED PARENT_DIRECTORY)
     set(PROXY_WIFI_NOT_SUBPROJECT ON)
 endif()
 
