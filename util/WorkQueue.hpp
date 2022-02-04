@@ -7,6 +7,7 @@
 
 #include <any>
 #include <deque>
+#include <future>
 #include <optional>
 
 // Rq: We need a WorkItem templated type because `std::function` requires the callable to be copyable, but we need it to
@@ -127,11 +128,10 @@ public:
     template<class F, std::enable_if_t<std::is_invocable_v<F>, int> = 1>
     void Run(F fun)
     {
-        auto t = Task{};
-        t.op = [fun = std::move(fun)] {
+        auto t = std::packaged_task<std::any()>{[fun = std::move(fun)] {
             fun();
             return std::any{};
-        };
+        }};
         m_workQueue.Submit(std::move(t));
     }
 
@@ -141,53 +141,31 @@ public:
     decltype(auto) RunAndWait(F&& fun)
     {
         using RetType = decltype(fun());
-        std::promise<std::any> answer;
-        auto future_answer = answer.get_future();
-
         if constexpr (std::is_void_v<RetType>)
         {
-            // Special handling for void return type (capture by ref is ok since we wait)
-            m_workQueue.Submit(Task{
-                [&] {
-                    fun();
-                    return std::any{};
-                },
-                std::move(answer)});
+            // Special handling for void return type
+            auto task = std::packaged_task<std::any()>{[&fun] {
+                fun();
+                return std::any{};
+            }};
+            auto future_answer = task.get_future();
+
+            m_workQueue.Submit(std::move(task));
             future_answer.wait();
             return;
         }
         else
         {
             // Capture by reference is ok since we wait for the result right after
-            m_workQueue.Submit(Task{[&] { return std::make_any<RetType>(fun()); }, std::move(answer)});
+            auto task = std::packaged_task<std::any()>{[&fun] { return std::make_any<RetType>(fun()); }};
+            auto future_answer = task.get_future();
+            m_workQueue.Submit(std::move(task));
             return std::any_cast<RetType>(future_answer.get());
         }
     }
 
 private:
-    /// @brief A work item wrapping the callable to execute with a promise to handle the return value
-    /// A `std::function` cannot be used directly because `std::promise` isn't copyable
-    /// This also forces us to use `std::any` in the promise type to handle different return values
-    /// (`std::function` will support move-only context in C++23)
-    struct Task
-    {
-        std::function<std::any()> op;
-        std::promise<std::any> answer;
-
-        void operator()() noexcept
-        {
-            try
-            {
-                answer.set_value(op());
-            }
-            catch(...)
-            {
-                answer.set_exception(std::current_exception());
-            }
-        }
-    };
-
-    WorkQueue<Task, minThread, maxThread> m_workQueue;
+    WorkQueue<std::packaged_task<std::any()>, minThread, maxThread> m_workQueue;
 };
 
 template<class WorkItem>
