@@ -55,4 +55,10 @@ struct ConnectedNetwork
     DOT11_AUTH_ALGORITHM auth = DOT11_AUTH_ALGO_80211_OPEN;
 };
 
+enum class ScanStatus
+{
+    Running,
+    Completed
+};
+
 } // namespace ProxyWifi

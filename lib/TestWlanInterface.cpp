@@ -135,10 +135,11 @@ std::future<void> TestWlanInterface::Disconnect()
     return promise.get_future();
 }
 
-std::future<std::vector<ScannedBss>> TestWlanInterface::Scan(std::optional<const Ssid>&)
+std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> TestWlanInterface::Scan(std::optional<const Ssid>&)
 {
     std::vector<ScannedBss> result;
-    for (const auto& fakeBss : m_networks)
+    // for (const auto& fakeBss : m_networks)
+    const auto& fakeBss = m_networks[0];
     {
         Log::Debug(
             L"Reporting fake BSS, Bssid: %ws, Ssid: %ws, AkmSuites: {%ws}, CipherSuites: {%ws}, GroupCipher: %.8x, "
@@ -153,9 +154,9 @@ std::future<std::vector<ScannedBss>> TestWlanInterface::Scan(std::optional<const
         result.emplace_back(fakeBss);
     }
 
-    std::promise<std::vector<ScannedBss>> promise;
     Log::Debug(L"%d BSS entries reported on test interface %ws", result.size(), GuidToString(m_interfaceGuid).c_str());
-    promise.set_value(result);
+    std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>> promise;
+    promise.set_value({std::move(result), ScanStatus::Running});
     return promise.get_future();
 }
 
@@ -166,14 +167,16 @@ void TestWlanInterface::NotificationSender()
         ConnectedOpen,
         ConnectedPsk,
         Disconnected,
-        SignalQuality
+        SignalQuality,
+        ScanResults
     };
 
-    static const std::array<std::pair<Notification, std::string>, 4> notifications{
+    static const std::array<std::pair<Notification, std::string>, 5> notifications{
         {{Notification::Disconnected, "Disconnected"},
          {Notification::ConnectedOpen, "Connected Open"},
          {Notification::ConnectedPsk, "Connected Psk"},
-         {Notification::SignalQuality, "Signal quality"}}};
+         {Notification::SignalQuality, "Signal quality"},
+         {Notification::ScanResults, "Scan results"}}};
 
     for (;;)
     {
@@ -224,6 +227,26 @@ void TestWlanInterface::NotificationSender()
         case Notification::SignalQuality:
         {
             NotifySignalQualityChange(60);
+            break;
+        }
+        case Notification::ScanResults:
+        {
+            std::vector<ScannedBss> result;
+            for (const auto& fakeBss : m_networks)
+            {
+                Log::Debug(
+                    L"Reporting fake BSS, Bssid: %ws, Ssid: %ws, AkmSuites: {%ws}, CipherSuites: {%ws}, GroupCipher: %.8x, "
+                    L"ChannelCenterFreq: %d",
+                    BssidToString(fakeBss.bssid).c_str(),
+                    SsidToLogString(fakeBss.ssid.value()).c_str(),
+                    ListEnumToHexString(gsl::span{fakeBss.akmSuites}).c_str(),
+                    ListEnumToHexString(gsl::span{fakeBss.cipherSuites}).c_str(),
+                    fakeBss.groupCipher ? WI_EnumValue(*fakeBss.groupCipher) : 0,
+                    fakeBss.channelCenterFreq);
+
+                result.emplace_back(fakeBss);
+            }
+            NotifyScanResults(result, ScanStatus::Completed);
             break;
         }
         default:

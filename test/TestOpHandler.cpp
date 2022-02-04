@@ -79,8 +79,12 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
         auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc);
         auto scanResponse = opHandler->HandleScanRequest(ScanRequest{std::move(body)});
 
+        // TODO guhetier: Check if a scan should have been scheduled / have completed or not
+        fakeWlansvc->WaitForNotifComplete();
+
         CHECK(scanResponse->num_bss == 0);
-        CHECK(scanResponse->total_size == 8);
+        CHECK(scanResponse->total_size == 9);
+        CHECK(scanResponse->scan_complete == 1);
     }
 
     SECTION("Report supported networks")
@@ -112,9 +116,12 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
         auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc);
 
         auto scanResponse = opHandler->HandleScanRequest(ScanRequest{std::move(body)});
+        // TODO guhetier: Check if a scan should have been scheduled / have completed or not
+        fakeWlansvc->WaitForNotifComplete();
 
         REQUIRE(scanResponse->num_bss == 1);
-        CHECK(scanResponse->total_size == 65);
+        CHECK(scanResponse->total_size == 66);
+        CHECK(scanResponse->scan_complete == 1);
         CHECK(Mock::c_enterpriseNetwork.bss.bssid == toBssid(scanResponse->bss[0].bssid));
 
         // Check the ie are not the original ones, but are for a WPA2PSK network with the same SSID
@@ -141,9 +148,12 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
         });
 
         auto scanResponse = opHandler->HandleScanRequest(ScanRequest{std::move(body)});
+        // TODO guhetier: Check if a scan should have been scheduled / have completed or not
+        fakeWlansvc->WaitForNotifComplete();
 
         REQUIRE(scanResponse->num_bss == 1);
-        CHECK(scanResponse->total_size == 66);
+        CHECK(scanResponse->total_size == 67);
+        CHECK(scanResponse->scan_complete == 1);
         CHECK(toBssid(bssid) == toBssid(scanResponse->bss[0].bssid));
         // Check the ie are not the original ones, but are for a WPA2PSK network with the same SSID
         gsl::span<uint8_t> ie{

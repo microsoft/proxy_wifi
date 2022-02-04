@@ -311,20 +311,29 @@ void RealWlanInterface::OnDisconnected(const WLAN_CONNECTION_NOTIFICATION_DATA& 
     }
 }
 
-std::future<std::vector<ScannedBss>> RealWlanInterface::Scan(std::optional<const Ssid>& ssid)
+std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> RealWlanInterface::Scan(std::optional<const Ssid>& ssid)
 {
+    std::unique_lock scanLock(m_promiseMutex);
+    if (m_scanRunning)
+    {
+        // A scan was already scheduled. Wait for its completion to provide results
+        Log::Trace(L"A scan was already scheduled on interface %ws. Waiting for its completion.", GuidToString(m_interfaceGuid).c_str());
+        m_scanPromise.emplace();
+        return m_scanPromise->get_future();
+    }
+
     // A scan request to wlansvc always flushes the BSS cache. Cache the existing results, and use them if the scan fails
     // and return no results: drivers can fail a scan right after the host connects (media in use), but relevant results
     // have already been scanned.
-    {
-        std::scoped_lock cachedResult{m_cachedResultsMutex};
-        m_cachedScannedBss = m_wlansvc->GetScannedBssList(m_interfaceGuid);
-        m_cachedScannedNetworks = m_wlansvc->GetScannedNetworkList(m_interfaceGuid);
-    }
+    auto cachedScannedBss = m_wlansvc->GetScannedBssList(m_interfaceGuid);
+    auto cachedScannedNetworks = m_wlansvc->GetScannedNetworkList(m_interfaceGuid);
 
-    std::unique_lock scanLock(m_promiseMutex);
+    auto scannedBss = AdaptScanResult(cachedScannedBss, cachedScannedNetworks);
+
     try
     {
+        m_scanRunning = true;
+
         if (ssid)
         {
             auto requestedSsid = static_cast<DOT11_SSID>(*ssid);
@@ -343,14 +352,16 @@ std::future<std::vector<ScannedBss>> RealWlanInterface::Scan(std::optional<const
     }
     catch (...)
     {
-        std::scoped_lock cachedResult{m_cachedResultsMutex};
-        std::promise<std::vector<ScannedBss>> promise;
-        promise.set_value(AdaptScanResult(m_cachedScannedBss, m_cachedScannedNetworks));
-        return promise.get_future();
+        m_scanRunning = false;
     }
 
-    m_scanPromise.emplace();
-    return m_scanPromise->get_future();
+    // Always mark the scan as completed: if the cached results are not good enough, the next scan request
+    // will wait for the real scan completion, or the new results will be sent through a notification
+    Log::Trace(L"Reporting cached scan results on interface %ws", GuidToString(m_interfaceGuid).c_str());
+
+    std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>> promise;
+    promise.set_value({std::move(scannedBss), ScanStatus::Completed});
+    return promise.get_future();
 }
 
 void RealWlanInterface::OnScanComplete()
@@ -358,22 +369,24 @@ void RealWlanInterface::OnScanComplete()
     auto scanResults = m_wlansvc->GetScannedBssList(m_interfaceGuid);
     auto availableNetworks = m_wlansvc->GetScannedNetworkList(m_interfaceGuid);
 
-    if (scanResults.empty())
+    auto results = AdaptScanResult(scanResults, availableNetworks);
+
     {
-        std::scoped_lock cachedResult{m_cachedResultsMutex};
-        Log::Debug(L"No results after scan completion on host interface %ws, using cached results", GuidToString(m_interfaceGuid).c_str());
-        scanResults.swap(m_cachedScannedBss);
-        availableNetworks.swap(m_cachedScannedNetworks);
+        std::unique_lock scanLock(m_promiseMutex);
+
+        // The scan is not running anymore
+        m_scanRunning = false;
+
+        // If a scan request is waiting, complete the promise
+        if (m_scanPromise)
+        {
+            m_scanPromise->set_value({std::move(results), ScanStatus::Completed});
+            return;
+        }
     }
 
-    std::scoped_lock scanLock(m_promiseMutex);
-    if (m_scanPromise)
-    {
-        auto results = AdaptScanResult(scanResults, availableNetworks);
-        Log::Debug(L"%d BSS entries reported on host interface %ws", results.size(), GuidToString(m_interfaceGuid).c_str());
-        m_scanPromise->set_value(std::move(results));
-        m_scanPromise = std::nullopt;
-    }
+    // Nobody is waiting, simply notify the guest of the new results
+    NotifyScanResults(std::move(results), ScanStatus::Completed);
 }
 
 void RealWlanInterface::OnSignalQualityChange(unsigned long signal) const

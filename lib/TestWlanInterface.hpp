@@ -27,7 +27,7 @@ public:
     std::optional<ConnectedNetwork> IsConnectedTo(const Ssid& requestedSsid) noexcept override;
     std::future<std::pair<WlanStatus, ConnectedNetwork>> Connect(const Ssid& requestedSsid, const Bssid& bssid, const WlanSecurity& securityInfo) override;
     std::future<void> Disconnect() override;
-    std::future<std::vector<ScannedBss>> Scan(std::optional<const Ssid>& ssid) override;
+    std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> Scan(std::optional<const Ssid>& ssid) override;
 
 private:
     static std::vector<FakeBss> BuildFakeNetworkList();
@@ -61,6 +61,14 @@ private:
         if (m_notifCallback)
         {
             m_notifCallback->OnHostSignalQualityChange(m_interfaceGuid, signal);
+        }
+    }
+
+    inline void NotifyScanResults(std::vector<ScannedBss> result, ScanStatus status) const
+    {
+        if (m_notifCallback)
+        {
+            m_notifCallback->OnHostScanResults(m_interfaceGuid, result, status);
         }
     }
 };

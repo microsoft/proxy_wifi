@@ -41,7 +41,7 @@ namespace {
 
 } // namespace
 
-void OperationHandler::RegisterGuestNotificationCallback(GuestNotificationCallback notificationCallback)
+void OperationHandler::RegisterGuestNotificationCallback(std::function<void(GuestNotificationTypes)> notificationCallback)
 {
     auto gate = std::unique_lock{m_notificationLock};
     m_notificationCallback = std::move(notificationCallback);
@@ -53,7 +53,7 @@ void OperationHandler::ClearGuestNotificationCallback()
     m_notificationCallback = {};
 }
 
-void OperationHandler::SendGuestNotification(std::variant<DisconnectNotif, SignalQualityNotif> notif)
+void OperationHandler::SendGuestNotification(GuestNotificationTypes notif)
 {
     auto gate = std::shared_lock{m_notificationLock};
     if (m_notificationCallback)
@@ -211,6 +211,26 @@ void OperationHandler::OnHostSignalQualityChange(const GUID& interfaceGuid, unsi
             Log::Trace(L"Send Signal quality change notification to the guest, Signal quality: %d", signalQuality);
             SendGuestNotification(SignalQualityNotif{Wlansvc::LinkQualityToRssi(signalQuality)});
         }
+    });
+}
+
+void OperationHandler::OnHostScanResults(const GUID& interfaceGuid, const std::vector<ScannedBss>& scannedBss, ScanStatus status)
+{
+    m_serializedRunner.Run([this, interfaceGuid, status, scannedBss] {
+        Log::Trace(
+            L"Scan result received on interface %ws, scan status: %ws",
+            GuidToString(interfaceGuid).c_str(),
+            status == ScanStatus::Completed ? L"Completed" : L"Pending");
+
+        ScanResponseBuilder scanResponse;
+        for (const auto& bss: scannedBss)
+        {
+            scanResponse.AddBss(std::move(bss));
+        }
+
+        m_scanningInterfaces.erase(interfaceGuid);
+        scanResponse.SetScanComplete(m_scanningInterfaces.empty());
+        SendGuestNotification(scanResponse.Build());
     });
 }
 
@@ -454,12 +474,13 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
         scanRequest->ssid_len > 0 ? std::make_optional<const Ssid>(gsl::span{scanRequest->ssid, scanRequest->ssid_len}) : std::nullopt;
 
     // Start all scan requests
-    std::vector<std::future<std::vector<ScannedBss>>> futureScanResults;
+    using FutureScanResult = std::future<std::pair<std::vector<ScannedBss>, ScanStatus>>;
+    std::vector<std::pair<GUID, FutureScanResult>> futureScanResults;
     for (const auto& wlanIntf : m_wlanInterfaces)
     {
         try
         {
-            futureScanResults.push_back(wlanIntf->Scan(requestedSsid));
+            futureScanResults.emplace_back(wlanIntf->GetGuid(), wlanIntf->Scan(requestedSsid));
         }
         CATCH_LOG_MSG("WlanScan failed")
     }
@@ -467,18 +488,25 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
     // Collect all scan results and merge them
     ScanResponseBuilder scanResponse;
     const auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-    for (auto& scanFuture : futureScanResults)
+    for (auto& [intfGuid, scanFuture]: futureScanResults)
     {
         try
         {
             std::vector<ScannedBss> scanResults;
+            auto status = ScanStatus::Completed;
             if (scanFuture.wait_until(timeout) != std::future_status::ready)
             {
                 LOG_WIN32_MSG(ERROR_TIMEOUT, "Scan timed out.");
             }
             else
             {
-                scanResults = scanFuture.get();
+                std::tie(scanResults, status) = scanFuture.get();
+            }
+
+            if (status == ScanStatus::Running)
+            {
+                Log::Trace(L"Scan pending on interface %ws.", GuidToString(intfGuid).c_str());
+                m_scanningInterfaces.insert(intfGuid);
             }
 
             for (const auto& bss : scanResults)
@@ -490,6 +518,8 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
     }
 
     OnGuestScanCompletion(OperationStatus::Succeeded);
+
+    scanResponse.SetScanComplete(m_scanningInterfaces.empty());
     return scanResponse.Build();
 }
 

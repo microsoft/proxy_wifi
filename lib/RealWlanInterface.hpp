@@ -36,8 +36,7 @@ public:
 
     std::future<std::pair<WlanStatus, ConnectedNetwork>> Connect(const Ssid& requestedSsid, const Bssid& bssid, const WlanSecurity& securityInfo) override;
     std::future<void> Disconnect() override;
-    std::future<std::vector<ScannedBss>> Scan(std::optional<const Ssid>& ssid) override;
-
+    std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> Scan(std::optional<const Ssid>& ssid) override;
 
 private:
     void WlanNotificationHandler(const WLAN_NOTIFICATION_DATA& notification) noexcept;
@@ -52,11 +51,9 @@ private:
     std::mutex m_promiseMutex;
     std::optional<std::promise<std::pair<WlanStatus, ConnectedNetwork>>> m_connectPromise;
     std::optional<std::promise<void>> m_disconnectPromise;
-    std::optional<std::promise<std::vector<ScannedBss>>> m_scanPromise;
-
-    std::mutex m_cachedResultsMutex;
-    std::vector<ScannedBss> m_cachedScannedBss;
-    std::vector<WLAN_AVAILABLE_NETWORK> m_cachedScannedNetworks;
+    std::optional<std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>>> m_scanPromise;
+    /// @brief Indicate a scan was requested to wlansvc and no completion notif was recieved yet
+    bool m_scanRunning = false;
 
     INotificationHandler* m_notifCallback{};
 
@@ -81,6 +78,14 @@ private:
         if (m_notifCallback)
         {
             m_notifCallback->OnHostSignalQualityChange(m_interfaceGuid, signal);
+        }
+    }
+
+    inline void NotifyScanResults(std::vector<ScannedBss> scannedBss, ScanStatus status) const
+    {
+        if (m_notifCallback)
+        {
+            m_notifCallback->OnHostScanResults(m_interfaceGuid, scannedBss, status);
         }
     }
 };

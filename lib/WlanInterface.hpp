@@ -29,6 +29,9 @@ public:
 
     /// @brief Must be called by the interfaces when the signal quality changes
     virtual void OnHostSignalQualityChange(const GUID& interfaceGuid, unsigned long signalQuality) = 0;
+
+    /// @brief Must be called by the interfaces when scan results are availables
+    virtual void OnHostScanResults(const GUID& interfaceGuid, const std::vector<ScannedBss>& scannedBss, ScanStatus status) = 0;
 };
 
 /// @brief Interface for classes representing a wlan interface (real or simulated)
@@ -62,8 +65,8 @@ public:
 
     /// @brief Request that the interface schedule a scan
     /// @param ssid The if present, request a targeted scan on this ssid (needed to scan hidden networks)
-    /// @return A future containing the scan results when it is ready
-    virtual std::future<std::vector<ScannedBss>> Scan(std::optional<const Ssid>& ssid) = 0;
+    /// @return A future containing the current scan results, and whether the scan is still running
+    virtual std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> Scan(std::optional<const Ssid>& ssid) = 0;
 };
 
 

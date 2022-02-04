@@ -84,6 +84,7 @@ struct proxy_wifi_bss
 #pragma warning(disable : 4200)
 struct proxy_wifi_scan_response
 {
+    uint8_t scan_complete;
     uint32_t num_bss;
     uint32_t total_size;
     proxy_wifi_bss bss[];
