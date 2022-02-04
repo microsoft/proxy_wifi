@@ -10,54 +10,57 @@ on:
     - cron: '25 2 * * 2'
 
 jobs:
-  build_x64_debug_analyze:
-    name: Build x64 Debug and Analyze
-    # Variables cannot be used there, need to be updated manually to point to the correct branch
-    uses: microsoft/proxy_wifi/.github/workflows/build.yml@main
-    with:
-      arch: x64
-      build_type: Debug
-      codeql: True
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
 
-  build_x64_Release:
-    name: Build x64 Release
-    # Variables cannot be used there, need to be updated manually to point to the correct branch
-    uses: microsoft/proxy_wifi/.github/workflows/build.yml@main
-    with:
-      arch: x64
-      build_type: Release
-    permissions:
-      actions: read
-      contents: read
+  build_analyze:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: False
+      matrix:
+        arch: [x64, arm64]
+        build_type: [Debug, Release]
+      # Run unit tests and CodeQL analysis on x64Debug only
+        include:
+          - arch: x64
+            build_type: Debug
+            test: True
+            codeql: True
 
-  build_arm64_debug:
-    name: Build ARM64 Debug
-    # Variables cannot be used there, need to be updated manually to point to the correct branch
-    uses: microsoft/proxy_wifi/.github/workflows/build.yml@main
-    with:
-      arch: arm64
-      build_type: Debug
-    permissions:
-      actions: read
-      contents: read
+    name: build_${{matrix.arch}}_${{matrix.build_type}}
 
-  build_arm64_release:
-    name: Build ARM64 Release
-    # Variables cannot be used there, need to be updated manually to point to the correct branch
-    uses: microsoft/proxy_wifi/.github/workflows/build.yml@main
-    with:
-      arch: arm64
-      build_type: Release
-    permissions:
-      actions: read
-      contents: read
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      if: ${{ matrix.codeql }}
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+
+    - name: Install Windows SDK
+      uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
+      with:
+        sdk-version: 19041
+
+    - name: Build
+      run: |
+        mkdir build && pushd build
+        cmake -A ${{ matrix.arch }} -DBYPASS_WLANAPI_DEPENDENCY=ON -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
+        cmake --build . --parallel --config ${{ matrix.build_type }}
+        popd
+
+    - name: Perform CodeQL Analysis
+      if: ${{ matrix.codeql }}
+      uses: github/codeql-action/analyze@v1
+
+    - name: Collect test artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: proxy-wifi-test-${{ matrix.arch }}-${{ matrix.build_type }}
+        path: build/test/${{ matrix.build_type }}/proxy-wifi-test.exe
 
   run_unit_tests:
-    needs: build_x64_debug_analyze
+    needs: build_analyze
     runs-on: windows-latest
     steps:
     - name: Download test artifact
