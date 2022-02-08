@@ -104,7 +104,13 @@ void Transport::AcceptConnections()
 
 void Transport::QueueNotification(Message&& msg)
 {
-    m_notifQueue.Submit([this, n = std::move(msg)]() noexcept { SendNotification(std::move(n)); });
+    m_notifQueue.Submit([this, n = std::move(msg)]() noexcept {
+        try
+        {
+            SendNotification(std::move(n));
+        }
+        CATCH_LOG_MSG("Failed to send a notification")
+    });
 }
 
 void Transport::SendNotification(const Message& message)
