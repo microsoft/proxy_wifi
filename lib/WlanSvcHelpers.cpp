@@ -343,7 +343,8 @@ constexpr DOT11_AUTH_ALGORITHM DetermineAuth(AuthAlgo auth, uint8_t wpaVersion, 
         }
         else if (wpaVersion == 2)
         {
-            if (std::find(akms.begin(), akms.end(), AkmSuite::Psk) == akms.end())
+            constexpr std::array wpa2akms{AkmSuite::Psk, AkmSuite::PskSha256, AkmSuite::PskSha384, AkmSuite::FtPsk, AkmSuite::FtPskSha384};
+            if (std::find_first_of(akms.begin(), akms.end(), wpa2akms.begin(), wpa2akms.end()) == akms.end())
             {
                 throw std::invalid_argument("Unsupported authentication algorithm: Open/Wpa2, but no PSK AKM");
             }
@@ -374,7 +375,6 @@ DOT11_AUTH_CIPHER_PAIR DetermineAuthCipherPair(const WlanSecurity& secInfo)
 {
     const auto auth = DetermineAuth(secInfo.auth, secInfo.wpaVersion, secInfo.akmSuites);
 
-    // TODO: If more auth/ciphers ever get supported, might have to sort the list to get the best couple
     auto candidateCiphers = ConvertCipherSuites(secInfo.cipherSuites);
     for (auto cipher: candidateCiphers)
     {
