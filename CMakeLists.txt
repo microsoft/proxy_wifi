@@ -1,10 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
-
-# Detect if proxy-wifi is being used by another project
-if(NOT DEFINED PARENT_DIRECTORY)
-    set(PROXY_WIFI_NOT_SUBPROJECT ON)
-endif()
-
+cmake_minimum_required(VERSION 3.21)
 
 project(proxy-wifi LANGUAGES CXX)
 
@@ -81,7 +75,7 @@ endif()
 add_subdirectory(lib)
 add_subdirectory(util)
 
-if (PROXY_WIFI_NOT_SUBPROJECT)
+if (PROJECT_IS_TOP_LEVEL)
   add_subdirectory(cmdline)
 
   include(CTest)
