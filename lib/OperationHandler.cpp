@@ -64,7 +64,7 @@ void OperationHandler::SendGuestNotification(std::variant<DisconnectNotif, Signa
     }
 }
 
-void OperationHandler::NotifyConnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo)
+void OperationHandler::NotifyConnectionToClientSerialized(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo)
 {
     Log::Info(
         L"Notifying a connection to client. Source: %ws, Interface: %ws, Ssid: %ws, Auth Algo: %ws",
@@ -79,7 +79,7 @@ void OperationHandler::NotifyConnectionToClient(EventSource source, const GUID& 
     }
 }
 
-void OperationHandler::NotifyDisconnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network)
+void OperationHandler::NotifyDisconnectionToClientSerialized(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network)
 {
     Log::Info(
         L"Notifying a disconnection to client. Source: %ws, Interface: %ws, Ssid: %ws",
@@ -93,26 +93,44 @@ void OperationHandler::NotifyDisconnectionToClient(EventSource source, const GUI
     }
 }
 
+void OperationHandler::NotifyConnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo)
+{
+    m_clientNotificationQueue.RunAndWait([this, source, interfaceGuid, network, authAlgo] {
+        NotifyConnectionToClientSerialized(source, interfaceGuid, network, authAlgo);
+    });
+}
+
+void OperationHandler::NotifyDisconnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network)
+{
+    m_clientNotificationQueue.RunAndWait(
+        [this, source, interfaceGuid, network] { NotifyDisconnectionToClientSerialized(source, interfaceGuid, network); });
+}
+
 void OperationHandler::NotifyGuestConnectRequestProgress(GuestConnectStatus status)
 {
-    Log::Info(L"Notifying guest directed connection progress to the client. Status: %ws", GuestConnectStatusToString(status));
+    m_clientNotificationQueue.RunAndWait([this, status] {
+        Log::Info(L"Notifying guest directed connection progress to the client. Status: %ws", GuestConnectStatusToString(status));
 
-    if (m_clientCallbacks.OnGuestConnectRequestProgress)
-    {
-        m_clientCallbacks.OnGuestConnectRequestProgress(status);
-    }
+        if (m_clientCallbacks.OnGuestConnectRequestProgress)
+        {
+            m_clientCallbacks.OnGuestConnectRequestProgress(status);
+        }
+    });
 }
 
 void OperationHandler::OnHostConnection(const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo)
 {
     // Always notify the client on a new host connection
-    NotifyConnectionToClient(EventSource::Host, interfaceGuid, ssid, authAlgo);
+    m_clientNotificationQueue.Run([this, interfaceGuid, ssid, authAlgo] {
+        NotifyConnectionToClientSerialized(EventSource::Host, interfaceGuid, ssid, authAlgo);
+    });
 }
 
 void OperationHandler::OnHostDisconnection(const GUID& interfaceGuid, const Ssid& ssid)
 {
     // Notify the client first
-    NotifyDisconnectionToClient(EventSource::Host, interfaceGuid, ssid);
+    m_clientNotificationQueue.Run(
+        [this, interfaceGuid, ssid] { NotifyDisconnectionToClientSerialized(EventSource::Host, interfaceGuid, ssid); });
 
     // If this is a spontaneous disconnection from the host on the interface currently used by the guest,
     // send a disconnect notification to the guest and mark it as disconnected
@@ -134,7 +152,8 @@ void OperationHandler::OnHostSignalQualityChange(const GUID& interfaceGuid, unsi
 {
     // Only forward notification for the currently connected interface to the guest
     m_serializedRunner.Run([this, interfaceGuid, signalQuality] {
-        if (m_guestConnection && interfaceGuid == m_guestConnection->interfaceGuid) {
+        if (m_guestConnection && interfaceGuid == m_guestConnection->interfaceGuid)
+        {
             Log::Trace(L"Send Signal quality change notification to the guest, Signal quality: %d", signalQuality);
             SendGuestNotification(SignalQualityNotif{Wlansvc::LinkQualityToRssi(signalQuality)});
         }
@@ -401,6 +420,12 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
 ScanResponse OperationHandler::HandleScanRequest(const ScanRequest& scanRequest)
 {
     return m_serializedRunner.RunAndWait([&] { return HandleScanRequestSerialized(scanRequest); });
+}
+
+void OperationHandler::DrainClientNotifications()
+{
+    // Wait for a task doing nothing: this ensure all previous notification have been processed
+    m_clientNotificationQueue.RunAndWait([] { return; });
 }
 
 } // namespace ProxyWifi

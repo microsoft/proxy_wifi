@@ -56,6 +56,10 @@ public:
     void RegisterGuestNotificationCallback(GuestNotificationCallback notificationCallback);
     void ClearGuestNotificationCallback();
 
+    /// @brief Wait all client notifications have been processed and return
+    /// Unit test helper
+    void DrainClientNotifications();
+
 protected:
 
     /// @brief Must be called by the interfaces when they connect to a network
@@ -76,6 +80,9 @@ private:
 
     /// @brief Send a notification to the guest
     void SendGuestNotification(std::variant<DisconnectNotif, SignalQualityNotif> notif);
+
+    void NotifyConnectionToClientSerialized(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo);
+    void NotifyDisconnectionToClientSerialized(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network);
 
     /// @brief Notify the lib user that the host/guest connected
     void NotifyConnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo);
@@ -124,6 +131,7 @@ private:
     std::vector<std::unique_ptr<IWlanInterface>> m_wlanInterfaces;
 
     SerializedWorkRunner m_serializedRunner;
+    SerializedWorkRunner m_clientNotificationQueue;
 };
 
 } // namespace ProxyWifi
