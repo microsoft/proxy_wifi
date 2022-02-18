@@ -56,6 +56,10 @@ public:
     void RegisterGuestNotificationCallback(GuestNotificationCallback notificationCallback);
     void ClearGuestNotificationCallback();
 
+    /// @brief Wait all client notifications have been processed and return
+    /// Unit test helper
+    void DrainClientNotifications();
+
 protected:
 
     /// @brief Must be called by the interfaces when they connect to a network
