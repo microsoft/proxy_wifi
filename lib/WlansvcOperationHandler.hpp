@@ -15,8 +15,8 @@ namespace ProxyWifi {
 class WlansvcOperationHandler : public OperationHandler
 {
 public:
-    WlansvcOperationHandler(ProxyWifiCallbacks callbacks, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces, std::shared_ptr<Wlansvc::WlanApiWrapper>& wlansvc)
-        : OperationHandler{std::move(callbacks), std::move(wlanInterfaces)}, m_wlansvc{wlansvc}
+    WlansvcOperationHandler(std::shared_ptr<ProxyWifiObserver> observer, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces, std::shared_ptr<Wlansvc::WlanApiWrapper>& wlansvc)
+        : OperationHandler{std::move(observer), std::move(wlanInterfaces)}, m_wlansvc{wlansvc}
     {
         if (!m_wlansvc)
         {

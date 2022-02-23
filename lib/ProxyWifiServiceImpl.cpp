@@ -27,12 +27,13 @@ constexpr const char* GetProxyModeName(OperationMode mode)
     }
 }
 
-std::shared_ptr<OperationHandler> GetOperationHandler(const OperationMode proxyMode, ProxyWifiCallbacks callbacks)
+std::shared_ptr<OperationHandler> GetOperationHandler(
+    const OperationMode proxyMode, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
 {
     switch (proxyMode)
     {
     case OperationMode::Simulated:
-        return MakeManualTestOperationHandler(std::move(callbacks));
+        return MakeManualTestOperationHandler(std::move(fakeNetworkCallback), std::move(observer));
     case OperationMode::Normal:
     {
         std::shared_ptr<Wlansvc::WlanApiWrapper> wlansvc;
@@ -44,7 +45,7 @@ std::shared_ptr<OperationHandler> GetOperationHandler(const OperationMode proxyM
         {
             LOG_CAUGHT_EXCEPTION_MSG("Failed to get a Wlansvc handle. Will only support fake networks.");
         }
-        return MakeWlansvcOperationHandler(wlansvc, std::move(callbacks));
+        return MakeWlansvcOperationHandler(wlansvc, std::move(fakeNetworkCallback), std::move(observer));
     }
     default:
         throw std::runtime_error("Unsupported proxy mode selected");
@@ -58,9 +59,8 @@ WifiNetworkInfo::WifiNetworkInfo(const DOT11_SSID& ssid, const DOT11_MAC_ADDRESS
     memcpy_s(this->bssid, sizeof this->bssid, bssid, sizeof bssid);
 }
 
-ProxyWifiCommon::ProxyWifiCommon(OperationMode mode, ProxyWifiCallbacks callbacks)
-    : m_mode{mode},
-      m_operationHandler{GetOperationHandler(mode, std::move(callbacks))}
+ProxyWifiCommon::ProxyWifiCommon(OperationMode mode, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
+    : m_mode{mode}, m_operationHandler{GetOperationHandler(mode, std::move(fakeNetworkCallback), std::move(observer))}
 {
 }
 
@@ -99,9 +99,8 @@ ProxyWifiHyperVSettings::ProxyWifiHyperVSettings(const GUID& guestVmId)
 {
 }
 
-ProxyWifiHyperV::ProxyWifiHyperV(const ProxyWifiHyperVSettings& settings, ProxyWifiCallbacks callbacks)
-    : ProxyWifiCommon(settings.ProxyMode, std::move(callbacks)),
-      m_settings(settings)
+ProxyWifiHyperV::ProxyWifiHyperV(const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
+    : ProxyWifiCommon(settings.ProxyMode, std::move(fakeNetworkCallback), std::move(observer)), m_settings(settings)
 {
 }
 
@@ -129,8 +128,9 @@ ProxyWifiTcpSettings::ProxyWifiTcpSettings(const std::string& listenIp)
 {
 }
 
-ProxyWifiTcp::ProxyWifiTcp(const ProxyWifiTcpSettings& settings, ProxyWifiCallbacks callbacks)
-    : ProxyWifiCommon(settings.ProxyMode, std::move(callbacks)), m_settings(settings)
+ProxyWifiTcp::ProxyWifiTcp(
+    const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
+    : ProxyWifiCommon(settings.ProxyMode, std::move(fakeNetworkCallback), std::move(observer)), m_settings(settings)
 {
 }
 
@@ -145,7 +145,8 @@ const ProxyWifiTcpSettings& ProxyWifiTcp::Settings() const
     return m_settings;
 }
 
-std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiHyperVSettings& settings, ProxyWifiCallbacks callbacks)
+std::unique_ptr<ProxyWifiService> BuildProxyWifiService(
+    const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
 {
     Log::Info(
         L"Building a Wifi proxy. Mode: %hs, Transport: HvSocket, VM Guid: %ws, Request port: %d, Notification port: %d",
@@ -153,10 +154,11 @@ std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiHyperVSet
         GuidToString(settings.GuestVmId).c_str(),
         settings.RequestResponsePort,
         settings.NotificationPort);
-    return std::make_unique<ProxyWifiHyperV>(settings, std::move(callbacks));
+    return std::make_unique<ProxyWifiHyperV>(settings, std::move(fakeNetworkCallback), std::move(observer));
 }
 
-std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiTcpSettings& settings, ProxyWifiCallbacks callbacks)
+std::unique_ptr<ProxyWifiService> BuildProxyWifiService(
+    const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
 {
     Log::Info(
         L"Building a Wifi proxy. Mode: %hs, Transport: TCP, Listen IP: %hs, Request port: %d, Notification port: %d",
@@ -164,7 +166,7 @@ std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiTcpSettin
         settings.ListenIp.c_str(),
         settings.RequestResponsePort,
         settings.NotificationPort);
-    return std::make_unique<ProxyWifiTcp>(settings, std::move(callbacks));
+    return std::make_unique<ProxyWifiTcp>(settings, std::move(fakeNetworkCallback), std::move(observer));
 }
 
 } // namespace ProxyWifi
