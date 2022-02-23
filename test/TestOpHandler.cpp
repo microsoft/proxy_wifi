@@ -432,7 +432,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         {
             notifs.push_back({Notif::HostDisconnect, Type::None});
         }
-        void OnGuestConnectionRequest(OperationType t, const DOT11_SSID&) noexcept override
+        void OnGuestConnectionRequest(OperationType t, const ConnectRequestArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestConnectRequest, type});
@@ -442,7 +442,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestConnectComplete, type});
         }
-        void OnGuestDisconnectionRequest(OperationType t, DOT11_SSID) noexcept override
+        void OnGuestDisconnectionRequest(OperationType t, const DisconnectRequestArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestDisconnectRequest, type});

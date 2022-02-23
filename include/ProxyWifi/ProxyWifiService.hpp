@@ -94,19 +94,23 @@ enum class OperationType
     HostMirroring ///< The guest was only replicating the state of the host, the host state won't change as a result of this request
 };
 
-// Temporarily disable the "unused argument warning"
-#pragma warning(push)
-#pragma warning(disable : 4100)
-
 /// @brief Observer class that get notified on host or guest events
 /// Client should inherit from it and override method to handle notifications
 class ProxyWifiObserver
 {
 public:
+    struct ConnectRequestArgs {
+        DOT11_SSID ssid;
+    };
+
     struct ConnectCompleteArgs {
         GUID interfaceGuid;
         DOT11_SSID ssid;
         DOT11_AUTH_ALGORITHM authAlgo;
+    };
+
+    struct DisconnectRequestArgs {
+        DOT11_SSID ssid;
     };
 
     struct DisconnectCompleteArgs {
@@ -115,19 +119,19 @@ public:
     };
 
     /// @brief An host WiFi interface connected to a network
-    virtual void OnHostConnection(const ConnectCompleteArgs& connectionInfo) noexcept
+    virtual void OnHostConnection(const ConnectCompleteArgs& /* connectionInfo */) noexcept
     {
     }
 
     /// @brief An host WiFi interface disconnected from a network
-    virtual void OnHostDisconnection(const DisconnectCompleteArgs& disconnectionInfo) noexcept
+    virtual void OnHostDisconnection(const DisconnectCompleteArgs& /* disconnectionInfo */) noexcept
     {
     }
 
     /// @brief The guest requested a connection to a network
     /// If `type == OperationType::HostMirroring`, an host inteface is already connected to the network, otherwise, one will be
     /// connected The connection won't proceed until the callback returns
-    virtual void OnGuestConnectionRequest(OperationType type, const DOT11_SSID& ssid) noexcept
+    virtual void OnGuestConnectionRequest(OperationType /* type */, const ConnectRequestArgs& /* connectionInfo */) noexcept
     {
     }
 
@@ -135,21 +139,21 @@ public:
     /// If `type == OperationType::HostMirroring`, an host inteface was already connected to the network, otherwise, one has been be connected
     /// The response won't be sent to the guest until this callback returns
     virtual void OnGuestConnectionCompletion(
-        OperationType type, OperationStatus status, const ConnectCompleteArgs& connectionInfo) noexcept
+        OperationType /* type */, OperationStatus /* status */, const ConnectCompleteArgs& /* connectionInfo */) noexcept
     {
     }
 
     /// @brief The guest requested a disconnection from the connected network
     /// If `type == OperationType::HostMirroring`, the host won't be impacted, otherwise, a matching host interface will be disconnected
     /// The disconnection won't proceed until the callback returns
-    virtual void OnGuestDisconnectionRequest(OperationType type, DOT11_SSID ssid) noexcept
+    virtual void OnGuestDisconnectionRequest(OperationType /* type */, const DisconnectRequestArgs& /* connectionInfo */) noexcept
     {
     }
 
     /// @brief A guest disconnection request was processed
     /// If `type == OperationType::HostMirroring`, this was a no-op for the host, otherwise, a matching host interface has been disconnected
     /// The response won't be sent to the guest until this callback returns
-    virtual void OnGuestDisconnectionCompletion(OperationType type, OperationStatus status, const DisconnectCompleteArgs& disconnectionInfo) noexcept
+    virtual void OnGuestDisconnectionCompletion(OperationType /* type */, OperationStatus /* status */, const DisconnectCompleteArgs& /* disconnectionInfo */) noexcept
     {
     }
 
@@ -161,12 +165,10 @@ public:
 
     /// @brief A guest scan request was processed
     /// The scan results won't be sent to the guest until this callback returns
-    virtual void OnGuestScanCompletion(OperationStatus status) noexcept
+    virtual void OnGuestScanCompletion(OperationStatus /* status */) noexcept
     {
     }
 };
-
-#pragma warning(pop)
 
 /// @brief Type of the callback providing a list of networks that will be simulated by the Wi-Fi proxy
 /// They will be shown as open networks, and are considered as permanently connected for the purpose of notifications

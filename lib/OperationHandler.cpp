@@ -72,7 +72,7 @@ void OperationHandler::OnGuestConnectionRequest(OperationType type, const Ssid& 
 
         if (m_clientObserver)
         {
-            m_clientObserver->OnGuestConnectionRequest(type, ssid);
+            m_clientObserver->OnGuestConnectionRequest(type, {ssid});
         }
     });
 }
@@ -105,7 +105,7 @@ void OperationHandler::OnGuestDisconnectionRequest(OperationType type, const Ssi
 
         if (m_clientObserver)
         {
-            m_clientObserver->OnGuestDisconnectionRequest(type, ssid);
+            m_clientObserver->OnGuestDisconnectionRequest(type, {ssid});
         }
     });
 }
