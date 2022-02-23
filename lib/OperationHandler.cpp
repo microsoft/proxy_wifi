@@ -215,10 +215,10 @@ void OperationHandler::AddInterface(const std::function<std::unique_ptr<IWlanInt
     m_serializedRunner.Run([this, wlanInterfaceBuilder] {
         auto wlanInterface = wlanInterfaceBuilder();
         const auto& newGuid = wlanInterface->GetGuid();
-        auto foundIt =
-            std::find_if(m_wlanInterfaces.begin(), m_wlanInterfaces.end(), [&](const auto& i) { return i->GetGuid() == newGuid; });
+        auto alreadyPresent =
+            std::any_of(m_wlanInterfaces.begin(), m_wlanInterfaces.end(), [&](const auto& i) { return i->GetGuid() == newGuid; });
 
-        if (foundIt != m_wlanInterfaces.end())
+        if (alreadyPresent)
         {
             // The interface is already present, nothing to do
             Log::Debug(L"Interfaces %ws already present", GuidToString(wlanInterface->GetGuid()).c_str());
