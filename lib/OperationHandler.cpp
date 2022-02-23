@@ -450,7 +450,8 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
     const auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     for (auto& scanFuture : futureScanResults)
     {
-        try {
+        try
+        {
             std::vector<ScannedBss> scanResults;
             if (scanFuture.wait_until(timeout) != std::future_status::ready)
             {

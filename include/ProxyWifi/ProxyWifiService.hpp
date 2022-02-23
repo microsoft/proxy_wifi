@@ -87,15 +87,19 @@ struct OnDisconnectionArgs {
     DOT11_SSID disconnectedNetwork{};
 };
 
+/// @brief Indicate the impact a guest requested operation will have on the host
 enum class OperationType
 {
-    GuestDirected,
-    HostMirroring
+    GuestDirected, ///< The guest is directing this operation, and the host state will change to accomodate it
+    HostMirroring ///< The guest was only replicating the state of the host, the host state won't change as a result of this request
 };
 
 // Temporarily disable the "unused argument warning"
 #pragma warning(push)
 #pragma warning(disable : 4100)
+
+/// @brief Observer class that get notified on host or guest events
+/// Client should inherit from it and override method to handle notifications
 class ProxyWifiObserver
 {
 public:
@@ -104,6 +108,7 @@ public:
         DOT11_SSID ssid;
         DOT11_AUTH_ALGORITHM authAlgo;
     };
+
     struct DisconnectCompleteArgs {
         GUID interfaceGuid;
         DOT11_SSID ssid;
