@@ -15,7 +15,7 @@
 
 namespace ProxyWifi {
 
-inline std::unique_ptr<OperationHandler> MakeWlansvcOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper> wlansvc, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
+inline std::unique_ptr<OperationHandler> MakeWlansvcOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper> wlansvc, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver)
 {
     std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces;
     // Add an interface for user defined networks, if a callback is provided. Must be first to take priority over the other interfaces
@@ -43,17 +43,17 @@ inline std::unique_ptr<OperationHandler> MakeWlansvcOperationHandler(std::shared
         }
 
         Log::Info(L"Creating a Wlansvc enabled opeartion handler");
-        return std::make_unique<WlansvcOperationHandler>(std::move(observer), std::move(wlanInterfaces), wlansvc);
+        return std::make_unique<WlansvcOperationHandler>(pObserver, std::move(wlanInterfaces), wlansvc);
     }
     else
     {
         // Without wlansvc, we can't handle interfaces arrival/departures anyway, so an `OperationHandler` is enough
         Log::Info(L"Creating a client network only operation handler");
-        return std::make_unique<OperationHandler>(std::move(observer), std::move(wlanInterfaces));
+        return std::make_unique<OperationHandler>(pObserver, std::move(wlanInterfaces));
     }
 }
 
-inline std::unique_ptr<OperationHandler> MakeManualTestOperationHandler(FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer)
+inline std::unique_ptr<OperationHandler> MakeManualTestOperationHandler(FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver)
 {
     std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces;
     // Add an interface for user defined networks if a callback is provided
@@ -66,7 +66,7 @@ inline std::unique_ptr<OperationHandler> MakeManualTestOperationHandler(FakeNetw
     wlanInterfaces.push_back(
         std::make_unique<TestWlanInterface>(GUID{0xc386c570, 0xf576, 0x4f7e, {0xbf, 0x19, 0xd2, 0x32, 0x3a, 0xf8, 0xdd, 0x19}}));
 
-    return std::make_unique<OperationHandler>(std::move(observer), std::move(wlanInterfaces));
+    return std::make_unique<OperationHandler>(pObserver, std::move(wlanInterfaces));
 }
 
 } // namespace ProxyWifi

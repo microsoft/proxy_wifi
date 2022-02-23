@@ -103,14 +103,17 @@ You can additionnaly setup a logger to chose where logs will be output.
         }
     };
 
+    // Must be kept alive until the proxy is destroyed
+    auto observer = MyObserver{};
+
     // Callback providing a list of networks that will be simulated by the Wi-Fi proxy
     auto provideFakeNetworks = [this]() -> std::vector<WifiNetworkInfo> { return ... };
 
-    m_wifiProxy = BuildProxyWifiService(
+    auto wifiProxy = BuildProxyWifiService(
         ProxyWifiHyperVSettings{vmId},
         std::move(provideFakeNetworks),
-        std::make_shared<MyObserver>());
-    m_wifiProxy->Start();
+        &observer);
+    wifiProxy->Start();
 ```
 
 ## Architecture

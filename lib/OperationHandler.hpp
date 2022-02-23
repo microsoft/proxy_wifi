@@ -24,8 +24,8 @@ namespace ProxyWifi {
 class OperationHandler: private INotificationHandler
 {
 public:
-    OperationHandler(std::shared_ptr<ProxyWifiObserver> observer, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces)
-        : m_clientObserver{std::move(observer)}, m_wlanInterfaces{std::move(wlanInterfaces)}
+    OperationHandler(ProxyWifiObserver* pObserver, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces)
+        : m_pClientObserver{pObserver}, m_wlanInterfaces{std::move(wlanInterfaces)}
     {
         for (auto& wlanIntf: m_wlanInterfaces)
         {
@@ -91,7 +91,7 @@ private:
     GuestNotificationCallback m_notificationCallback;
 
     /// @brief Client provided object to notify client of various events
-    std::shared_ptr<ProxyWifiObserver> m_clientObserver;
+    ProxyWifiObserver* m_pClientObserver = nullptr;
 
     enum class ConnectionType
     {

@@ -70,9 +70,9 @@ void OperationHandler::OnGuestConnectionRequest(OperationType type, const Ssid& 
             ToString(type),
             SsidToLogString(ssid.value()).c_str());
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnGuestConnectionRequest(type, {ssid});
+            m_pClientObserver->OnGuestConnectionRequest(type, {ssid});
         }
     });
 }
@@ -88,9 +88,9 @@ void OperationHandler::OnGuestConnectionCompletion(OperationType type, Operation
             SsidToLogString(ssid.value()).c_str(),
             Wlansvc::AuthAlgoToString(authAlgo).c_str());
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnGuestConnectionCompletion(type, status, {interfaceGuid, ssid, authAlgo});
+            m_pClientObserver->OnGuestConnectionCompletion(type, status, {interfaceGuid, ssid, authAlgo});
         }
     });
 }
@@ -103,9 +103,9 @@ void OperationHandler::OnGuestDisconnectionRequest(OperationType type, const Ssi
             ToString(type),
             SsidToLogString(ssid.value()).c_str());
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnGuestDisconnectionRequest(type, {ssid});
+            m_pClientObserver->OnGuestDisconnectionRequest(type, {ssid});
         }
     });
 }
@@ -120,9 +120,9 @@ void OperationHandler::OnGuestDisconnectionCompletion(OperationType type, Operat
             GuidToString(interfaceGuid).c_str(),
             SsidToLogString(ssid.value()).c_str());
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnGuestDisconnectionCompletion(type, status, {interfaceGuid, ssid});
+            m_pClientObserver->OnGuestDisconnectionCompletion(type, status, {interfaceGuid, ssid});
         }
     });
 }
@@ -132,9 +132,9 @@ void OperationHandler::OnGuestScanRequest() noexcept
     m_clientNotificationQueue.RunAndWait([&] {
         Log::Info(L"Notifying the client of a guest scan request");
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnGuestScanRequest();
+            m_pClientObserver->OnGuestScanRequest();
         }
     });
 }
@@ -144,9 +144,9 @@ void OperationHandler::OnGuestScanCompletion(OperationStatus status) noexcept
     m_clientNotificationQueue.RunAndWait([&] {
         Log::Info(L"Notifying the client of a guest scan completion. Status: %ws", ToString(status));
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnGuestScanCompletion(status);
+            m_pClientObserver->OnGuestScanCompletion(status);
         }
     });
 }
@@ -160,9 +160,9 @@ void OperationHandler::OnHostConnection(const GUID& interfaceGuid, const Ssid& s
             GuidToString(args.interfaceGuid).c_str(),
             SsidToLogString({args.ssid.ucSSID, args.ssid.uSSIDLength}).c_str(),
             Wlansvc::AuthAlgoToString(args.authAlgo).c_str());
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnHostConnection(args);
+            m_pClientObserver->OnHostConnection(args);
         }
     });
 }
@@ -176,9 +176,9 @@ void OperationHandler::OnHostDisconnection(const GUID& interfaceGuid, const Ssid
             GuidToString(args.interfaceGuid).c_str(),
             SsidToLogString({args.ssid.ucSSID, args.ssid.uSSIDLength}).c_str());
 
-        if (m_clientObserver)
+        if (m_pClientObserver)
         {
-            m_clientObserver->OnHostDisconnection(args);
+            m_pClientObserver->OnHostDisconnection(args);
         }
     });
 

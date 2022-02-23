@@ -15,7 +15,7 @@ namespace ProxyWifi {
 class ProxyWifiCommon: public ProxyWifiService
 {
 public:
-    ProxyWifiCommon(OperationMode mode, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer);
+    ProxyWifiCommon(OperationMode mode, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver);
     virtual ~ProxyWifiCommon();
 
     /// @brief Start the proxy.
@@ -75,7 +75,7 @@ class ProxyWifiHyperV : public ProxyWifiCommon
 public:
     /// @brief Construct a new Proxy Wifi HyperV object.
     /// @param settings The settings controlling operations of the proxy.
-    explicit ProxyWifiHyperV(const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer);
+    explicit ProxyWifiHyperV(const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver);
 
     /// @brief Get HyperV specific proxy settings.
     const ProxyWifiHyperVSettings& Settings() const;
@@ -98,7 +98,7 @@ public:
     /// @brief Construct a new Proxy Wifi Tcp object.
     ///
     /// @param settings The settings controlling operations of the proxy.
-    explicit ProxyWifiTcp(const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback, std::shared_ptr<ProxyWifiObserver> observer);
+    explicit ProxyWifiTcp(const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver);
 
     /// @brief TCP specific proxy settings.
     const ProxyWifiTcpSettings& Settings() const;

@@ -240,8 +240,8 @@ struct ProxyWifiTcpSettings
 };
 
 std::unique_ptr<ProxyWifiService> BuildProxyWifiService(
-    const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback = {}, std::shared_ptr<ProxyWifiObserver> observer = {});
+    const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback = {}, ProxyWifiObserver* pObserver = nullptr);
 std::unique_ptr<ProxyWifiService> BuildProxyWifiService(
-    const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback = {}, std::shared_ptr<ProxyWifiObserver> observer = {});
+    const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback = {}, ProxyWifiObserver* pObserver = nullptr);
 
 } // namespace ProxyWifi
