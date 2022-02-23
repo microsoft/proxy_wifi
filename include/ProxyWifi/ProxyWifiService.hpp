@@ -99,13 +99,23 @@ enum class OperationType
 class ProxyWifiObserver
 {
 public:
+    struct ConnectCompleteArgs {
+        GUID interfaceGuid;
+        DOT11_SSID ssid;
+        DOT11_AUTH_ALGORITHM authAlgo;
+    };
+    struct DisconnectCompleteArgs {
+        GUID interfaceGuid;
+        DOT11_SSID ssid;
+    };
+
     /// @brief An host WiFi interface connected to a network
-    virtual void OnHostConnection(const GUID& interfaceGuid, const DOT11_SSID& ssid, DOT11_AUTH_ALGORITHM authAlgo) noexcept
+    virtual void OnHostConnection(const ConnectCompleteArgs& connectionInfo) noexcept
     {
     }
 
     /// @brief An host WiFi interface disconnected from a network
-    virtual void OnHostDisconnection(const GUID& interfaceGuid, const DOT11_SSID& ssid) noexcept
+    virtual void OnHostDisconnection(const DisconnectCompleteArgs& disconnectionInfo) noexcept
     {
     }
 
@@ -120,7 +130,7 @@ public:
     /// If `type == OperationType::HostMirroring`, an host inteface was already connected to the network, otherwise, one has been be connected
     /// The response won't be sent to the guest until this callback returns
     virtual void OnGuestConnectionCompletion(
-        OperationType type, OperationStatus status, const GUID& interfaceGuid, const DOT11_SSID& ssid, DOT11_AUTH_ALGORITHM authAlgo) noexcept
+        OperationType type, OperationStatus status, const ConnectCompleteArgs& connectionInfo) noexcept
     {
     }
 
@@ -134,7 +144,7 @@ public:
     /// @brief A guest disconnection request was processed
     /// If `type == OperationType::HostMirroring`, this was a no-op for the host, otherwise, a matching host interface has been disconnected
     /// The response won't be sent to the guest until this callback returns
-    virtual void OnGuestDisconnectionCompletion(OperationType type, OperationStatus status, const GUID& interfaceGuid, const DOT11_SSID& ssid) noexcept
+    virtual void OnGuestDisconnectionCompletion(OperationType type, OperationStatus status, const DisconnectCompleteArgs& disconnectionInfo) noexcept
     {
     }
 

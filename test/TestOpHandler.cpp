@@ -424,11 +424,11 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
 
     struct TestObserver : public ProxyWifiObserver
     {
-        void OnHostConnection(const GUID&, const DOT11_SSID&, DOT11_AUTH_ALGORITHM) noexcept override
+        void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
             notifs.push_back({Notif::HostConnect, Type::None});
         }
-        void OnHostDisconnection(const GUID&, const DOT11_SSID&) noexcept override
+        void OnHostDisconnection(const DisconnectCompleteArgs&) noexcept override
         {
             notifs.push_back({Notif::HostDisconnect, Type::None});
         }
@@ -437,7 +437,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestConnectRequest, type});
         }
-        void OnGuestConnectionCompletion(OperationType t, OperationStatus, const GUID&, const DOT11_SSID&, DOT11_AUTH_ALGORITHM) noexcept override
+        void OnGuestConnectionCompletion(OperationType t, OperationStatus, const ConnectCompleteArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestConnectComplete, type});
@@ -447,7 +447,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestDisconnectRequest, type});
         }
-        void OnGuestDisconnectionCompletion(OperationType t, OperationStatus, const GUID&, const DOT11_SSID&) noexcept override
+        void OnGuestDisconnectionCompletion(OperationType t, OperationStatus, const DisconnectCompleteArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.push_back({Notif::GuestDisconnectComplete, type});
@@ -577,14 +577,14 @@ TEST_CASE("Provide the authentication algorithm on host connections", "[wlansvcO
 
     struct TestObserver: public ProxyWifiObserver
     {
-        void OnHostConnection(const GUID&, const DOT11_SSID&, DOT11_AUTH_ALGORITHM auth) noexcept override
+        void OnHostConnection(const ConnectCompleteArgs& connectInfo) noexcept override
         {
-            notifParams.push_back({EventSource::Host, auth});
+            notifParams.push_back({EventSource::Host, connectInfo.authAlgo});
         }
 
-        void OnGuestConnectionCompletion(OperationType, OperationStatus, const GUID&, const DOT11_SSID&, DOT11_AUTH_ALGORITHM auth) noexcept override
+        void OnGuestConnectionCompletion(OperationType, OperationStatus, const ConnectCompleteArgs& connectInfo) noexcept override
         {
-            notifParams.push_back({EventSource::Guest, auth});
+            notifParams.push_back({EventSource::Guest, connectInfo.authAlgo});
         }
 
         std::vector<std::pair<EventSource, DOT11_AUTH_ALGORITHM>> notifParams;
@@ -642,7 +642,7 @@ TEST_CASE("Notify client for initially connected networks", "[wlansvcOpHandler][
 
     struct TestObserver: public ProxyWifiObserver
     {
-        void OnHostConnection(const GUID&, const DOT11_SSID&, DOT11_AUTH_ALGORITHM) noexcept override
+        void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
             hostConnect++;
         }
@@ -669,7 +669,7 @@ TEST_CASE("Initial notifications cannot deadlock a cient", "[wlansvcOpHandler][c
 
     struct TestObserver: public ProxyWifiObserver
     {
-        void OnHostConnection(const GUID&, const DOT11_SSID&, DOT11_AUTH_ALGORITHM) noexcept override
+        void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
             for (auto i = 0; i < 10; ++i)
             {
@@ -858,13 +858,13 @@ TEST_CASE("Notifications for fake networks use FakeInterfaceGuid", "[wlansvcOpHa
 
     struct TestObserver: public ProxyWifiObserver
     {
-        void OnGuestDisconnectionCompletion(OperationType, OperationStatus, const GUID& interfaceGuid, const DOT11_SSID&) noexcept override
+        void OnGuestDisconnectionCompletion(OperationType, OperationStatus, const DisconnectCompleteArgs& disconnectInfo) noexcept override
         {
-            guid = interfaceGuid;
+            guid = disconnectInfo.interfaceGuid;
         }
-        void OnGuestConnectionCompletion(OperationType, OperationStatus, const GUID& interfaceGuid, const DOT11_SSID&, DOT11_AUTH_ALGORITHM) noexcept override
+        void OnGuestConnectionCompletion(OperationType, OperationStatus, const ConnectCompleteArgs& connectInfo) noexcept override
         {
-            guid = interfaceGuid;
+            guid = connectInfo.interfaceGuid;
         }
         GUID guid{};
     };

@@ -90,7 +90,7 @@ void OperationHandler::OnGuestConnectionCompletion(OperationType type, Operation
 
         if (m_clientObserver)
         {
-            m_clientObserver->OnGuestConnectionCompletion(type, status, interfaceGuid, ssid, authAlgo);
+            m_clientObserver->OnGuestConnectionCompletion(type, status, {interfaceGuid, ssid, authAlgo});
         }
     });
 }
@@ -122,7 +122,7 @@ void OperationHandler::OnGuestDisconnectionCompletion(OperationType type, Operat
 
         if (m_clientObserver)
         {
-            m_clientObserver->OnGuestDisconnectionCompletion(type, status, interfaceGuid, ssid);
+            m_clientObserver->OnGuestDisconnectionCompletion(type, status, {interfaceGuid, ssid});
         }
     });
 }
@@ -154,15 +154,15 @@ void OperationHandler::OnGuestScanCompletion(OperationStatus status) noexcept
 void OperationHandler::OnHostConnection(const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo)
 {
     // Always notify the client on a new host connection
-    m_clientNotificationQueue.Run([this, interfaceGuid, ssid, authAlgo] {
+    m_clientNotificationQueue.Run([this, args = ProxyWifiObserver::ConnectCompleteArgs{interfaceGuid, ssid, authAlgo}] {
         Log::Info(
             L"Notifying the client of a host connection. Interface: %ws, Ssid: %ws, Auth Algo: %ws",
-            GuidToString(interfaceGuid).c_str(),
-            SsidToLogString(ssid.value()).c_str(),
-            Wlansvc::AuthAlgoToString(authAlgo).c_str());
+            GuidToString(args.interfaceGuid).c_str(),
+            SsidToLogString({args.ssid.ucSSID, args.ssid.uSSIDLength}).c_str(),
+            Wlansvc::AuthAlgoToString(args.authAlgo).c_str());
         if (m_clientObserver)
         {
-            m_clientObserver->OnHostConnection(interfaceGuid, ssid, authAlgo);
+            m_clientObserver->OnHostConnection(args);
         }
     });
 }
@@ -170,15 +170,15 @@ void OperationHandler::OnHostConnection(const GUID& interfaceGuid, const Ssid& s
 void OperationHandler::OnHostDisconnection(const GUID& interfaceGuid, const Ssid& ssid)
 {
     // Notify the client first
-    m_clientNotificationQueue.Run([this, interfaceGuid, ssid] {
+    m_clientNotificationQueue.Run([this, args = ProxyWifiObserver::DisconnectCompleteArgs{interfaceGuid, ssid}] {
         Log::Info(
             L"Notifying the client of a host disconnection. Interface: %ws, Ssid: %ws",
-            GuidToString(interfaceGuid).c_str(),
-            SsidToLogString(ssid.value()).c_str());
+            GuidToString(args.interfaceGuid).c_str(),
+            SsidToLogString({args.ssid.ucSSID, args.ssid.uSSIDLength}).c_str());
 
         if (m_clientObserver)
         {
-            m_clientObserver->OnHostDisconnection(interfaceGuid, ssid);
+            m_clientObserver->OnHostDisconnection(args);
         }
     });
 
