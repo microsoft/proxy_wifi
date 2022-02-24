@@ -95,19 +95,25 @@ You can additionnaly setup a logger to chose where logs will be output.
     // Tell the ProxyWifiService to output logs to a tracelogging provider
     Log::AddLogger(std::make_unique<Log::TraceLoggingLogger>());
 
-    // Callback executed on a connection event
-    auto onConnect = [this](EventSource origin, const OnConnectionArgs& args) -> void { ... };
-    // Callback executed on a disconnection event
-    auto onDisconnect = [this](EventSource origin, const OnDisconnectionArgs& args) -> void { ... };
-    // Callback executed on the guest connection request that will cause a host interface to connect
-    auto onGuestConnectRequest = [this](GuestConnectStatus status) -> void { ... };
+    class MyObserver: public ProxyWifiObserver
+    {
+        void OnGuestConnectionRequest(OperationType type, const DOT11_SSID& ssid) noexcept override
+        {
+            std::cout << "The guest requested a connection" << std::endl;
+        }
+    };
+
+    // Must be kept alive until the proxy is destroyed
+    auto observer = MyObserver{};
+
     // Callback providing a list of networks that will be simulated by the Wi-Fi proxy
     auto provideFakeNetworks = [this]() -> std::vector<WifiNetworkInfo> { return ... };
 
-    m_wifiProxy = BuildProxyWifiService(
+    auto wifiProxy = BuildProxyWifiService(
         ProxyWifiHyperVSettings{vmId},
-        ProxyWifiCallbacks{std::move(onConnect), std::move(onDisconnect), std::move(onGuestConnectRequest), std::move(provideFakeNetworks)});
-    m_wifiProxy->Start();
+        std::move(provideFakeNetworks),
+        &observer);
+    wifiProxy->Start();
 ```
 
 ## Architecture

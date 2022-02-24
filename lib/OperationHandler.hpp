@@ -24,8 +24,8 @@ namespace ProxyWifi {
 class OperationHandler: private INotificationHandler
 {
 public:
-    OperationHandler(ProxyWifiCallbacks callbacks, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces)
-        : m_clientCallbacks{std::move(callbacks)}, m_wlanInterfaces{std::move(wlanInterfaces)}
+    OperationHandler(ProxyWifiObserver* pObserver, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces)
+        : m_pClientObserver{pObserver}, m_wlanInterfaces{std::move(wlanInterfaces)}
     {
         for (auto& wlanIntf: m_wlanInterfaces)
         {
@@ -69,8 +69,6 @@ protected:
     /// @brief Must be called by the interfaces when the signal quality changes
     void OnHostSignalQualityChange(const GUID& interfaceGuid, unsigned long signalQuality) override;
 
-    std::vector<WifiNetworkInfo> GetUserBss();
-
 private:
 
     // These functions do the actual handling of the request from a seriliazed work queue
@@ -81,25 +79,19 @@ private:
     /// @brief Send a notification to the guest
     void SendGuestNotification(std::variant<DisconnectNotif, SignalQualityNotif> notif);
 
-    void NotifyConnectionToClientSerialized(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo);
-    void NotifyDisconnectionToClientSerialized(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network);
-
-    /// @brief Notify the lib user that the host/guest connected
-    void NotifyConnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network, DOT11_AUTH_ALGORITHM authAlgo);
-
-    /// @brief Notifiy the lib user that the host/guest disconnected
-    void NotifyDisconnectionToClient(EventSource source, const GUID& interfaceGuid, const DOT11_SSID& network);
-
-    /// @brief Notifiy the lib user that of the current status of a guest driven connection
-    /// This must be called when the connect request will cause a host interface to actually connect.
-    /// It must indicate the start of the process and the final result (success or failure)
-    void NotifyGuestConnectRequestProgress(GuestConnectStatus status);
+    /// @brief Notify the guest of guest operation request and completion
+    void OnGuestConnectionRequest(OperationType type, const Ssid& ssid) noexcept;
+    void OnGuestConnectionCompletion(OperationType type, OperationStatus status, const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) noexcept;
+    void OnGuestDisconnectionRequest(OperationType type, const Ssid& ssid) noexcept;
+    void OnGuestDisconnectionCompletion(OperationType type, OperationStatus status, const GUID& interfaceGuid, const Ssid& ssid) noexcept;
+    void OnGuestScanRequest() noexcept;
+    void OnGuestScanCompletion(OperationStatus status) noexcept;
 
     std::shared_mutex m_notificationLock;
     GuestNotificationCallback m_notificationCallback;
 
-    // TODO guhetier: Try to get only the two necessary callback there? The last one is only needed for the fake interface
-    ProxyWifiCallbacks m_clientCallbacks;
+    /// @brief Client provided object to notify client of various events
+    ProxyWifiObserver* m_pClientObserver = nullptr;
 
     enum class ConnectionType
     {
@@ -130,7 +122,9 @@ private:
 
     std::vector<std::unique_ptr<IWlanInterface>> m_wlanInterfaces;
 
+    /// @brief Serialized workqueue processing guest requests and guest notifications
     SerializedWorkRunner m_serializedRunner;
+    /// @brief Serialized workqueue sending client notifications
     SerializedWorkRunner m_clientNotificationQueue;
 };
 

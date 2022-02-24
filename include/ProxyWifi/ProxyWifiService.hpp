@@ -50,19 +50,11 @@ public:
     virtual void Stop() = 0;
 };
 
-/// @brief Indicate who is concerned by a connection/disconnection event
-enum class EventSource
+/// @brief Indicate the status of a guest initiated operation
+enum class OperationStatus
 {
-    Host,  ///< The host was (dis)connected
-    Guest, ///< The guest was (dis)connected
-};
-
-/// @brief Indicate the status of a guest initiated connection
-enum class GuestConnectStatus
-{
-    Starting, ///< A connection request was received and will result in trying to connect host interfaces
-    Succeeded, ///< An host interface has been connected to the requested network and the guest will be notified of the success
-    Failed ///< No host interface could be connected to the requested network and the guest will be notified of the failure
+    Succeeded,
+    Failed
 };
 
 /// @brief List basic information about a Wi-Fi network
@@ -95,29 +87,92 @@ struct OnDisconnectionArgs {
     DOT11_SSID disconnectedNetwork{};
 };
 
-struct ProxyWifiCallbacks
+/// @brief Indicate the impact a guest requested operation will have on the host
+enum class OperationType
 {
-    /// @brief Callback executed on a connection event
-    /// If the `EventSource` is the `Host`, it means indicated host interface connected
-    /// If the `EventSource` is the `Guest`, it means the guest is connecting (the connection request will be
-    /// completed only after this callback returns)
-    std::function<void(EventSource, const OnConnectionArgs&)> OnConnection;
-
-    /// @brief Callback executed on a disconnection event
-    /// If the `EventSource` is the `Host`, it means indicated host interface disconnected
-    /// If the `EventSource` is the `Guest`, it means the guest is disconnecting (the disconnection request will be
-    /// completed only after this callback returns)
-    std::function<void(EventSource, const OnDisconnectionArgs&)> OnDisconnection;
-
-    /// @brief Callback executed on the guest connection request that will cause a host interface to connect
-    /// The callback is invoked when before interfaces are connected/disconnected on the host, and after the connection
-    /// attempt is completed, whether it succeeds or fails.
-    std::function<void(GuestConnectStatus)> OnGuestConnectRequestProgress;
-
-    /// @brief Callback providing a list of networks that will be simulated by the Wi-Fi proxy
-    /// They will be shown as open networks, and are considered as permanently connected for the purpose of notifications
-    std::function<std::vector<WifiNetworkInfo>()> ProvideFakeNetworks;
+    GuestDirected, ///< The guest is directing this operation, and the host state will change to accomodate it
+    HostMirroring ///< The guest was only replicating the state of the host, the host state won't change as a result of this request
 };
+
+/// @brief Observer class that get notified on host or guest events
+/// Client should inherit from it and override method to handle notifications
+class ProxyWifiObserver
+{
+public:
+    struct ConnectRequestArgs {
+        DOT11_SSID ssid;
+    };
+
+    struct ConnectCompleteArgs {
+        GUID interfaceGuid;
+        DOT11_SSID ssid;
+        DOT11_AUTH_ALGORITHM authAlgo;
+    };
+
+    struct DisconnectRequestArgs {
+        DOT11_SSID ssid;
+    };
+
+    struct DisconnectCompleteArgs {
+        GUID interfaceGuid;
+        DOT11_SSID ssid;
+    };
+
+    /// @brief An host WiFi interface connected to a network
+    virtual void OnHostConnection(const ConnectCompleteArgs& /* connectionInfo */) noexcept
+    {
+    }
+
+    /// @brief An host WiFi interface disconnected from a network
+    virtual void OnHostDisconnection(const DisconnectCompleteArgs& /* disconnectionInfo */) noexcept
+    {
+    }
+
+    /// @brief The guest requested a connection to a network
+    /// If `type == OperationType::HostMirroring`, an host inteface is already connected to the network, otherwise, one will be
+    /// connected The connection won't proceed until the callback returns
+    virtual void OnGuestConnectionRequest(OperationType /* type */, const ConnectRequestArgs& /* connectionInfo */) noexcept
+    {
+    }
+
+    /// @brief A guest connection request was processed
+    /// If `type == OperationType::HostMirroring`, an host inteface was already connected to the network, otherwise, one has been be connected
+    /// The response won't be sent to the guest until this callback returns
+    virtual void OnGuestConnectionCompletion(
+        OperationType /* type */, OperationStatus /* status */, const ConnectCompleteArgs& /* connectionInfo */) noexcept
+    {
+    }
+
+    /// @brief The guest requested a disconnection from the connected network
+    /// If `type == OperationType::HostMirroring`, the host won't be impacted, otherwise, a matching host interface will be disconnected
+    /// The disconnection won't proceed until the callback returns
+    virtual void OnGuestDisconnectionRequest(OperationType /* type */, const DisconnectRequestArgs& /* connectionInfo */) noexcept
+    {
+    }
+
+    /// @brief A guest disconnection request was processed
+    /// If `type == OperationType::HostMirroring`, this was a no-op for the host, otherwise, a matching host interface has been disconnected
+    /// The response won't be sent to the guest until this callback returns
+    virtual void OnGuestDisconnectionCompletion(OperationType /* type */, OperationStatus /* status */, const DisconnectCompleteArgs& /* disconnectionInfo */) noexcept
+    {
+    }
+
+    /// @brief The guest requested a scan
+    /// The scan won't start on the host until this callback returns
+    virtual void OnGuestScanRequest() noexcept
+    {
+    }
+
+    /// @brief A guest scan request was processed
+    /// The scan results won't be sent to the guest until this callback returns
+    virtual void OnGuestScanCompletion(OperationStatus /* status */) noexcept
+    {
+    }
+};
+
+/// @brief Type of the callback providing a list of networks that will be simulated by the Wi-Fi proxy
+/// They will be shown as open networks, and are considered as permanently connected for the purpose of notifications
+using FakeNetworkProvider = std::function<std::vector<WifiNetworkInfo>()>;
 
 /// @brief Guid used in notifications concerning the provided fake networks
 /// 1b57e649-a1df-482f-85c2-a16063836418
@@ -184,7 +239,9 @@ struct ProxyWifiTcpSettings
     const OperationMode ProxyMode = OperationMode::Normal;
 };
 
-std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiHyperVSettings& settings, ProxyWifiCallbacks callbacks);
-std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiTcpSettings& settings, ProxyWifiCallbacks callbacks);
+std::unique_ptr<ProxyWifiService> BuildProxyWifiService(
+    const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback = {}, ProxyWifiObserver* pObserver = nullptr);
+std::unique_ptr<ProxyWifiService> BuildProxyWifiService(
+    const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback = {}, ProxyWifiObserver* pObserver = nullptr);
 
 } // namespace ProxyWifi
