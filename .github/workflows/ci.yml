@@ -12,7 +12,7 @@ on:
 jobs:
 
   build_analyze:
-    runs-on: windows-latest
+    runs-on: windows-2019
     strategy:
       fail-fast: False
       matrix:
@@ -61,7 +61,7 @@ jobs:
 
   run_unit_tests:
     needs: build_analyze
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
     - name: Download test artifact
       id: download
