@@ -1,0 +1,80 @@
+name: "CI"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ main ]
+  schedule:
+    - cron: '25 2 * * 2'
+
+jobs:
+
+  build_analyze:
+    runs-on: windows-2019
+    strategy:
+      fail-fast: False
+      matrix:
+        arch: [x64, arm64]
+        build_type: [Debug, Release]
+      # Run unit tests and CodeQL analysis on x64Debug only
+        include:
+          - arch: x64
+            build_type: Debug
+            test: True
+            codeql: True
+
+    name: build_${{matrix.arch}}_${{matrix.build_type}}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      if: ${{ matrix.codeql }}
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+
+    - name: Install Windows SDK
+      uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
+      with:
+        sdk-version: 19041
+
+    - name: Build
+      run: |
+        mkdir build && pushd build
+        cmake -A ${{ matrix.arch }} -DBYPASS_WLANAPI_DEPENDENCY=ON -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
+        cmake --build . --parallel --config ${{ matrix.build_type }}
+        popd
+
+    - name: Perform CodeQL Analysis
+      if: ${{ matrix.codeql }}
+      uses: github/codeql-action/analyze@v1
+
+    - name: Collect test artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: proxy-wifi-test-${{ matrix.arch }}-${{ matrix.build_type }}
+        path: build/test/${{ matrix.build_type }}/proxy-wifi-test.exe
+
+  run_unit_tests:
+    needs: build_analyze
+    runs-on: windows-2019
+    steps:
+    - name: Download test artifact
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: proxy-wifi-test-x64-Debug
+
+    - name: Run tests
+      run: ${{steps.download.outputs.download-path}}/proxy-wifi-test.exe -s >> test-logs.txt
+
+    - name: Collect test logs on failure
+      uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: test-logs
+        path: test-logs.txt
