@@ -216,6 +216,7 @@ void OperationHandler::OnHostSignalQualityChange(const GUID& interfaceGuid, unsi
 
 void OperationHandler::OnHostScanResults(const GUID& interfaceGuid, const std::vector<ScannedBss>& scannedBss, ScanStatus status)
 {
+    // TODO guhetier: How to know if the guest is ready to receive scan results? Other notif are gated on the guest being connected (hence was present, this could happen anytime...)
     m_serializedRunner.Run([this, interfaceGuid, status, scannedBss] {
         Log::Trace(
             L"Scan result received on interface %ws, scan status: %ws",

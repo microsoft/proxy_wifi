@@ -138,8 +138,7 @@ std::future<void> TestWlanInterface::Disconnect()
 std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> TestWlanInterface::Scan(std::optional<const Ssid>&)
 {
     std::vector<ScannedBss> result;
-    // for (const auto& fakeBss : m_networks)
-    const auto& fakeBss = m_networks[0];
+    for (const auto& fakeBss : m_networks)
     {
         Log::Debug(
             L"Reporting fake BSS, Bssid: %ws, Ssid: %ws, AkmSuites: {%ws}, CipherSuites: {%ws}, GroupCipher: %.8x, "
@@ -152,11 +151,17 @@ std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> TestWlanInterface::S
             fakeBss.channelCenterFreq);
 
         result.emplace_back(fakeBss);
+
+        if (m_scanBehavior == ScanBehavior::Async)
+        {
+            // Only report the first network in the imediate answer of an async scan
+            break;
+        }
     }
 
     Log::Debug(L"%d BSS entries reported on test interface %ws", result.size(), GuidToString(m_interfaceGuid).c_str());
     std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>> promise;
-    promise.set_value({std::move(result), ScanStatus::Running});
+    promise.set_value({std::move(result), m_scanBehavior == ScanBehavior::Async ? ScanStatus::Running : ScanStatus::Completed});
     return promise.get_future();
 }
 
@@ -168,15 +173,19 @@ void TestWlanInterface::NotificationSender()
         ConnectedPsk,
         Disconnected,
         SignalQuality,
-        ScanResults
+        ScanResults,
+        ScanSync,
+        ScanAsync
     };
 
-    static const std::array<std::pair<Notification, std::string>, 5> notifications{
+    static const std::array<std::pair<Notification, std::string>, 7> notifications{
         {{Notification::Disconnected, "Disconnected"},
          {Notification::ConnectedOpen, "Connected Open"},
          {Notification::ConnectedPsk, "Connected Psk"},
          {Notification::SignalQuality, "Signal quality"},
-         {Notification::ScanResults, "Scan results"}}};
+         {Notification::ScanResults, "Scan results"},
+         {Notification::ScanSync, "Scan Mode: Sync"},
+         {Notification::ScanAsync, "Scan Mode: Async"}}};
 
     for (;;)
     {
@@ -249,6 +258,10 @@ void TestWlanInterface::NotificationSender()
             NotifyScanResults(result, ScanStatus::Completed);
             break;
         }
+        case Notification::ScanSync:
+            m_scanBehavior = ScanBehavior::Sync;
+        case Notification::ScanAsync:
+            m_scanBehavior = ScanBehavior::Async;
         default:
             throw std::runtime_error("Unsupported notification");
         }

@@ -39,6 +39,11 @@ private:
     std::optional<size_t> m_connectedNetwork;
 
     INotificationHandler* m_notifCallback{};
+    enum class ScanBehavior
+    {
+        Sync,
+        Async
+    } m_scanBehavior;
 
     inline void NotifyConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {
