@@ -60,7 +60,7 @@ public:
 
     /// @brief Wait all client notifications have been processed and return
     /// Unit test helper
-    void DrainClientNotifications();
+    void DrainWorkqueues();
 
 protected:
 

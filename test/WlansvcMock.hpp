@@ -160,12 +160,13 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
 {
     WlanSvcFake() = default;
 
-    WlanSvcFake(const std::vector<GUID>& interfaces, const std::vector<Network>& visibleNetworks = {})
+    WlanSvcFake(const std::vector<GUID>& interfaces, const std::vector<Network>& visibleNetworks = {}, bool cacheScanResults = true)
     {
         for (const auto& guid : interfaces)
         {
-            m_interfaces.emplace(std::make_pair(guid, WlanInterface{visibleNetworks, std::nullopt}));
+            m_interfaces.emplace(std::make_pair(guid, WlanInterface{cacheScanResults ? visibleNetworks : std::vector<Network>{}, std::nullopt}));
         }
+        m_visibleNetworks = std::move(visibleNetworks);
     }
 
     WlanSvcFake(const WlanSvcFake&) = delete;
@@ -176,6 +177,11 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
     ~WlanSvcFake() override
     {
         WaitForNotifComplete();
+    }
+
+    void AddNetwork(const Network& network)
+    {
+        m_visibleNetworks.push_back(network);
     }
 
     void AddNetwork(const GUID& interfaceGuid, const Network& network)
@@ -243,7 +249,24 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
 
     void Scan(const GUID& interfaceGuid, DOT11_SSID* = nullptr) override
     {
-        // Simply send a notification to annonce the scan completion
+
+        // Produce the union of two unsorted containers (quadratic) in parameter `b`
+        auto buildUnion =
+            [](const auto& a, auto& b, auto eq) {
+                std::ranges::copy_if(a, std::back_inserter(b), [&](const auto& ea) {
+                    return !std::ranges::any_of(b, [&](const auto& eb) {
+                        return eq(ea, eb);
+                    });
+                });
+            };
+
+        // Add visible networks to the interface
+        auto& intf = m_interfaces.at(interfaceGuid);
+        buildUnion(m_visibleNetworks, intf.m_visibleNetworks, [](const auto& n1, const auto& n2) {
+            return n1.bss.bssid == n2.bss.bssid;
+        });
+
+        // Send a notification to annonce the scan completion
         SendWlansvcNotif(interfaceGuid, [interfaceGuid](const auto& send) {
             WLAN_REASON_CODE rc = WLAN_REASON_CODE_SUCCESS;
             send({WLAN_NOTIFICATION_SOURCE_ACM, wlan_notification_acm_scan_complete, interfaceGuid, sizeof rc, &rc});
@@ -396,7 +419,8 @@ private:
         std::vector<Network> m_visibleNetworks;
         std::optional<Network> m_connectedBss;
     };
-    std::unordered_map<GUID, WlanInterface> m_interfaces;
+    std::unordered_map<GUID, WlanInterface> m_interfaces{};
+    std::vector<Network> m_visibleNetworks{};
 
     wil::srwlock m_notifLock;
     std::unordered_map<GUID, std::function<void(const WLAN_NOTIFICATION_DATA&)>> m_notifCallbacks;

@@ -529,9 +529,10 @@ ScanResponse OperationHandler::HandleScanRequest(const ScanRequest& scanRequest)
     return m_serializedRunner.RunAndWait([&] { return HandleScanRequestSerialized(scanRequest); });
 }
 
-void OperationHandler::DrainClientNotifications()
+void OperationHandler::DrainWorkqueues()
 {
-    // Wait for a task doing nothing: this ensure all previous notification have been processed
+    // Wait for a task doing nothing: this ensure all previous tasks have been processed
+    m_serializedRunner.RunAndWait([] { return; });
     m_clientNotificationQueue.RunAndWait([] { return; });
 }
 
