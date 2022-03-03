@@ -260,8 +260,10 @@ void TestWlanInterface::NotificationSender()
         }
         case Notification::ScanSync:
             m_scanBehavior = ScanBehavior::Sync;
+            break;
         case Notification::ScanAsync:
             m_scanBehavior = ScanBehavior::Async;
+            break;
         default:
             throw std::runtime_error("Unsupported notification");
         }
