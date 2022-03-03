@@ -77,6 +77,8 @@ protected:
 
     SerializedWorkQueue<std::function<void()>> m_notifQueue;
     unsigned short m_notificationPort;
+
+    std::atomic_bool m_guestWasPresent = false;
 };
 
 /// @brief Proxy transport which uses HyperV (AF_HYPERV) sockets.

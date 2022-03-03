@@ -64,6 +64,9 @@ void Transport::AcceptConnections()
         {
             Log::Debug(L"Got connection");
 
+            // The guest is now ready, this will let host notification be sent
+            m_guestWasPresent = true;
+
             // Handle the connection synchronously: the guest requests are serialized
             auto connection = ConnectionSocket{acceptContext.releaseSocket(), m_operationHandler};
             connection.Run();
@@ -104,6 +107,11 @@ void Transport::AcceptConnections()
 
 void Transport::QueueNotification(Message&& msg)
 {
+    if (!m_guestWasPresent)
+    {
+        Log::Trace(L"Dropping a notification: no guest request have been received, it might not be ready yet");
+    }
+
     m_notifQueue.Submit([this, n = std::move(msg)]() noexcept {
         try
         {
