@@ -42,7 +42,7 @@ inline std::unique_ptr<OperationHandler> MakeWlansvcOperationHandler(std::shared
             }
         }
 
-        Log::Info(L"Creating a Wlansvc enabled opeartion handler");
+        Log::Info(L"Creating a Wlansvc enabled operation handler");
         return std::make_unique<WlansvcOperationHandler>(pObserver, std::move(wlanInterfaces), wlansvc);
     }
     else

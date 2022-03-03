@@ -174,11 +174,25 @@ TEST_CASE("Handle an async scan request", "[wlansvcOpHandler][multiInterface]")
     auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc);
 
     ProxyWifi::OperationHandler::GuestNotificationTypes notif{SignalQualityNotif{42}};
-    auto callCount = 0;
+    auto notifSent = 0;
     opHandler->RegisterGuestNotificationCallback([&](auto n) {
-        ++callCount;
+        ++notifSent;
         notif = n;
     });
+
+    SECTION("Don't wait for scan completion on a first request")
+    {
+        // Block the scan completion notification
+        fakeWlansvc->BlockNotifications();
+        auto scanResponse = opHandler->HandleScanRequest(ScanRequest{body});
+
+        CHECK(scanResponse->num_bss == 1);
+        CHECK(scanResponse->scan_complete == 1);
+        CHECK(fakeWlansvc->callCount.scan == 1);
+
+        fakeWlansvc->UnblockNotifications();
+        fakeWlansvc->WaitForNotifComplete();
+    }
 
     SECTION("Send non-cached results in a notification")
     {
@@ -188,29 +202,31 @@ TEST_CASE("Handle an async scan request", "[wlansvcOpHandler][multiInterface]")
 
         CHECK(scanResponse->num_bss == 1);
         CHECK(scanResponse->scan_complete == 1);
+        CHECK(fakeWlansvc->callCount.scan == 1);
 
-        CHECK(callCount == 1);
+        CHECK(notifSent == 1);
         REQUIRE(std::holds_alternative<ScanResponse>(notif));
         CHECK(std::get<ScanResponse>(notif)->num_bss == 2);
         CHECK(std::get<ScanResponse>(notif)->scan_complete == 1);
     }
 
-    SECTION("Wait for results when scan already requested")
+    SECTION("Wait for results when a scan is already requested")
     {
-        // TODO guhetier: Implement this functions (test pass without them for now by luck)
-        // fakeWlansvc->BlockNotifications();
+        // Delay notifications to make sure the second request gets in before the scan completion is notified
+        fakeWlansvc->BlockNotifications(10 /* ms */);
         auto scanResponse = opHandler->HandleScanRequest(ScanRequest{body});
-        // A second scan request is received before the scan is completed
-        auto scanResponse2 = opHandler->HandleScanRequest(ScanRequest{std::move(body)});
+        CHECK(fakeWlansvc->callCount.scan == 1);
 
-        // fakeWlansvc->UnblockNotifications();
+        auto scanResponse2 = opHandler->HandleScanRequest(ScanRequest{std::move(body)});
         fakeWlansvc->WaitForNotifComplete();
         opHandler->DrainWorkqueues();
 
         CHECK(scanResponse->num_bss == 1);
         CHECK(scanResponse->scan_complete == 1);
+        CHECK(fakeWlansvc->callCount.scan == 1);
 
-        CHECK(callCount == 0);
+        // The second request got the scan results and no notification was sent
+        CHECK(notifSent == 0);
         CHECK(scanResponse2->num_bss == 2);
         CHECK(scanResponse2->scan_complete == 1);
     }

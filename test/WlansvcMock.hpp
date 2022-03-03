@@ -8,6 +8,7 @@
 
 #include "Iee80211Utils.hpp"
 #include "StringUtils.hpp"
+#include "WorkQueue.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -203,14 +204,12 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
 
     void Subscribe(const GUID& interfaceGuid, std::function<void(const WLAN_NOTIFICATION_DATA&)> callback) override
     {
-        auto lock = m_notifLock.lock_exclusive();
-        m_notifCallbacks[interfaceGuid] = callback;
+        m_notifQueue.RunAndWait([&] { m_notifCallbacks[interfaceGuid] = callback; });
     }
 
     void Unsubscribe(const GUID& interfaceGuid) override
     {
-        auto lock = m_notifLock.lock_exclusive();
-        m_notifCallbacks[interfaceGuid] = nullptr;
+        m_notifQueue.RunAndWait([&] { m_notifCallbacks.erase(interfaceGuid); });
     }
 
     std::optional<WLAN_CONNECTION_ATTRIBUTES> GetCurrentConnection(const GUID& interfaceGuid) override
@@ -249,6 +248,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
 
     void Scan(const GUID& interfaceGuid, DOT11_SSID* = nullptr) override
     {
+        callCount.scan++;
 
         // Produce the union of two unsorted containers (quadratic) in parameter `b`
         auto buildUnion =
@@ -375,10 +375,21 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
     // Allows test code to wait until a notification is processed by an interface
     void WaitForNotifComplete()
     {
-        if (m_notifThread.joinable())
-        {
-            m_notifThread.join();
-        }
+        // Queue an empty task and wait for it to make sure everything before has been executed
+        m_notifQueue.RunAndWait([] {});
+    }
+
+    // Allows test code to block wlansvc notifications for a delay
+    void BlockNotifications(int delayMs = INFINITE)
+    {
+        m_notifBlocker.ResetEvent();
+        m_notifQueue.Run([this, delayMs] { m_notifBlocker.wait(delayMs); });
+    }
+
+    // Allows test code to block wlansvc notifications for a delay
+    void UnblockNotifications()
+    {
+        m_notifBlocker.SetEvent();
     }
 
     // Call counters
@@ -386,6 +397,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
     {
         int connect = 0;
         int disconnect = 0;
+        int scan = 0;
     };
     CallCount callCount{};
 
@@ -393,11 +405,8 @@ private:
     using NotifBuilder = std::function<void(const std::function<void(const WLAN_NOTIFICATION_DATA&)>&)>;
     void SendWlansvcNotif(const GUID& intfGuid, NotifBuilder notifBuilder)
     {
-        WaitForNotifComplete();
-
-        m_notifThread = std::thread([this, intfGuid, notifBuilder = std::move(notifBuilder)] {
-            auto lock = m_notifLock.lock_shared();
-            const auto callback = m_notifCallbacks.find(intfGuid);
+        m_notifQueue.Run([this, intfGuid, notifBuilder = std::move(notifBuilder)] {
+            auto callback = m_notifCallbacks.find(intfGuid);
             // Null guid subscription get all the notifications
             const auto allIntfCallback = m_notifCallbacks.find(GUID{});
             notifBuilder([&](const auto& n) {
@@ -422,8 +431,8 @@ private:
     std::unordered_map<GUID, WlanInterface> m_interfaces{};
     std::vector<Network> m_visibleNetworks{};
 
-    wil::srwlock m_notifLock;
+    wil::slim_event_auto_reset m_notifBlocker;
     std::unordered_map<GUID, std::function<void(const WLAN_NOTIFICATION_DATA&)>> m_notifCallbacks;
-    std::thread m_notifThread;
+    SerializedWorkRunner m_notifQueue;
 };
 } // namespace Mock
