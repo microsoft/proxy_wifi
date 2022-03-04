@@ -43,7 +43,7 @@ private:
     {
         Sync,
         Async
-    } m_scanBehavior;
+    } m_scanBehavior = ScanBehavior::Sync;
 
     inline void NotifyConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {

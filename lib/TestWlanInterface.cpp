@@ -179,17 +179,17 @@ void TestWlanInterface::NotificationSender()
     };
 
     static const std::array<std::pair<Notification, std::string>, 7> notifications{
-        {{Notification::Disconnected, "Disconnected"},
-         {Notification::ConnectedOpen, "Connected Open"},
-         {Notification::ConnectedPsk, "Connected Psk"},
+        {{Notification::Disconnected, "Host Disconnected"},
+         {Notification::ConnectedOpen, "Host Connected Open"},
+         {Notification::ConnectedPsk, "Host Connected Psk"},
          {Notification::SignalQuality, "Signal quality"},
-         {Notification::ScanResults, "Scan results"},
+         {Notification::ScanResults, "Notify Scan results"},
          {Notification::ScanSync, "Scan Mode: Sync"},
          {Notification::ScanAsync, "Scan Mode: Async"}}};
 
     for (;;)
     {
-        std::cout << ">>> Enter a value to send a notification: ";
+        std::cout << ">>> Choose what to do: ";
         for (auto i = 0u; i < notifications.size(); ++i)
         {
             std::cout << "<" << i << " -> " << notifications[i].second << "> ";
@@ -200,11 +200,11 @@ void TestWlanInterface::NotificationSender()
         std::cin >> userInput;
         if (userInput >= notifications.size())
         {
-            std::cout << "Invalid notification code: " << userInput << std::endl;
+            std::cout << "Invalid operation code: " << userInput << std::endl;
             continue;
         }
 
-        std::cout << "Sending notification " << notifications[userInput].second << std::endl;
+        std::cout << "Executing: " << notifications[userInput].second << std::endl;
 
         switch (notifications[userInput].first)
         {
