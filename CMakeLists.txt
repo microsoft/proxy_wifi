@@ -6,10 +6,7 @@ project(proxy-wifi LANGUAGES CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # Options
-
 option(MICROSOFT_TELEMETRY "Enable Microsoft telemetry collection" OFF)
-# Needed for running test on pipeline runners: WlanApi.dll is absent from server SKU, tests need to link to a stub
-option(BYPASS_WLANAPI_DEPENDENCY "Do not declare a link dependency on wlanApi" OFF)
 
 include(FetchContent)
 

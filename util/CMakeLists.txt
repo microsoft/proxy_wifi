@@ -8,6 +8,7 @@ target_sources(proxy-wifi-util
         GuidUtils.hpp
         StringUtils.hpp
         WorkQueue.hpp
+        DynamicFunction.hpp
 )
 
 target_include_directories(proxy-wifi-util
