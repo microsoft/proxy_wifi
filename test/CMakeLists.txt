@@ -28,10 +28,10 @@ target_include_directories(proxy-wifi-test
 target_sources(proxy-wifi-test
     PRIVATE
         main.cpp
-        TestUtils.cpp
+        TestInit.cpp
         TestOpHandler.cpp
+        TestUtils.cpp
         WlansvcMock.hpp
-        $<$<BOOL:${BYPASS_WLANAPI_DEPENDENCY}>:WlanApiStubs.cpp>
 )
 
 # Allows CTest to discover Catch2 tests automatically
