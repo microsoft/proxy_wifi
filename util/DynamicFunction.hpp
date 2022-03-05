@@ -39,7 +39,7 @@ private:
 
     static std::function<R(Args...)> LoadFunction(const wil::shared_hmodule& module, const std::string& name)
     {
-        std::function<R(Args...)> function = reinterpret_cast<R(*)(Args...)>(GetProcAddress(module.get(), name.c_str()));
+        std::function<R(Args...)> function = reinterpret_cast<R (*)(Args...)>(GetProcAddress(module.get(), name.c_str()));
         THROW_LAST_ERROR_IF(!function);
         return function;
     }

@@ -74,12 +74,10 @@ public:
     std::vector<WLAN_AVAILABLE_NETWORK> GetScannedNetworkList(const GUID& interfaceGuid) override;
 
 private:
-
     static void OnWlansvcEventCallback(PWLAN_NOTIFICATION_DATA pNotification, void* pContext) noexcept;
     void HandleWlansvcNotification(PWLAN_NOTIFICATION_DATA pNotification);
 
 private:
-
     HANDLE m_wlanHandle;
     wil::srwlock m_callbacksLock;
     std::unordered_map<GUID, std::function<void(const WLAN_NOTIFICATION_DATA&)>> m_callbacks;
@@ -91,7 +89,8 @@ private:
         DynamicFunction<decltype(::WlanDisconnect)> WlanDisconnect{L"wlanApi.dll", "WlanDisconnect"};
         DynamicFunction<decltype(::WlanEnumInterfaces)> WlanEnumInterfaces{L"wlanApi.dll", "WlanEnumInterfaces"};
         DynamicFunction<decltype(::WlanFreeMemory)> WlanFreeMemory{L"wlanApi.dll", "WlanFreeMemory"};
-        DynamicFunction<decltype(::WlanGetAvailableNetworkList)> WlanGetAvailableNetworkList{L"wlanApi.dll", "WlanGetAvailableNetworkList"};
+        DynamicFunction<decltype(::WlanGetAvailableNetworkList)> WlanGetAvailableNetworkList{
+            L"wlanApi.dll", "WlanGetAvailableNetworkList"};
         DynamicFunction<decltype(::WlanGetNetworkBssList)> WlanGetNetworkBssList{L"wlanApi.dll", "WlanGetNetworkBssList"};
         DynamicFunction<decltype(::WlanOpenHandle)> WlanOpenHandle{L"wlanApi.dll", "WlanOpenHandle"};
         DynamicFunction<decltype(::WlanQueryInterface)> WlanQueryInterface{L"wlanApi.dll", "WlanQueryInterface"};

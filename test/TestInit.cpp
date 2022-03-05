@@ -12,11 +12,13 @@ TEST_CASE("Creating a WlanApiWrapper doesn't cause a crash", "[init]")
 {
     // The operation can succeed or fail depending on whether wlanapi.dll is available on the SKU
     // But the executable must load and not crash
-    try {
+    try
+    {
         auto _ = std::make_unique<Wlansvc::WlanApiWrapperImpl>();
     }
-    catch(...)
-    {}
+    catch (...)
+    {
+    }
 }
 
 TEST_CASE("WlanApiWrapper is optionnal to create an OperationHandler", "[init]")

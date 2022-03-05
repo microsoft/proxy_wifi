@@ -92,9 +92,10 @@ std::vector<GUID> WlanApiWrapperImpl::EnumerateInterfaces()
     }
 
     std::vector<GUID> result;
-    std::transform(pInterfaces->InterfaceInfo, pInterfaces->InterfaceInfo + pInterfaces->dwNumberOfItems, std::back_inserter(result), [](const auto& i) {
-        return i.InterfaceGuid;
-    });
+    std::transform(
+        pInterfaces->InterfaceInfo, pInterfaces->InterfaceInfo + pInterfaces->dwNumberOfItems, std::back_inserter(result), [](const auto& i) {
+            return i.InterfaceGuid;
+        });
     return result;
 }
 
@@ -181,7 +182,8 @@ std::vector<WLAN_AVAILABLE_NETWORK> WlanApiWrapperImpl::GetScannedNetworkList(co
         }
     });
 
-    THROW_IF_WIN32_ERROR(m_wlanApi.WlanGetAvailableNetworkList(m_wlanHandle, &interfaceGuid, dot11_BSS_type_infrastructure, nullptr, &pScannedNetworks));
+    THROW_IF_WIN32_ERROR(
+        m_wlanApi.WlanGetAvailableNetworkList(m_wlanHandle, &interfaceGuid, dot11_BSS_type_infrastructure, nullptr, &pScannedNetworks));
     return {pScannedNetworks->Network, pScannedNetworks->Network + pScannedNetworks->dwNumberOfItems};
 }
 
