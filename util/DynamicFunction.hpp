@@ -14,13 +14,8 @@ template <class R, class... Args>
 class DynamicFunction<R(Args...)>
 {
 public:
-    DynamicFunction(const wil::shared_hmodule& module, const std::string& functionName)
-        : m_module{module}, m_function{LoadFunction(module, functionName)}
-    {
-    }
-
     DynamicFunction(const std::wstring& moduleName, const std::string& functionName)
-        : DynamicFunction{LoadModule(moduleName), functionName}
+        : m_module{LoadModule(moduleName)}, m_function{LoadFunction(m_module, functionName)}
     {
     }
 
@@ -30,14 +25,14 @@ public:
     }
 
 private:
-    static wil::shared_hmodule LoadModule(const std::wstring& name)
+    static wil::unique_hmodule LoadModule(const std::wstring& name)
     {
-        wil::shared_hmodule module{LoadLibraryEx(name.c_str(), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32)};
+        wil::unique_hmodule module{LoadLibraryEx(name.c_str(), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32)};
         THROW_LAST_ERROR_IF(!module);
         return module;
     }
 
-    static std::function<R(Args...)> LoadFunction(const wil::shared_hmodule& module, const std::string& name)
+    static std::function<R(Args...)> LoadFunction(const wil::unique_hmodule& module, const std::string& name)
     {
         std::function<R(Args...)> function = reinterpret_cast<R (*)(Args...)>(GetProcAddress(module.get(), name.c_str()));
         THROW_LAST_ERROR_IF(!function);
@@ -46,5 +41,5 @@ private:
 
 private:
     std::function<R(Args...)> m_function;
-    wil::shared_hmodule m_module;
+    wil::unique_hmodule m_module;
 };
