@@ -163,12 +163,12 @@ void RealWlanInterface::SetNotificationHandler(INotificationHandler* handler)
     try
     {
         const auto currentConnection = m_wlansvc->GetCurrentConnection(m_interfaceGuid);
-        if (currentConnection.isState == wlan_interface_state_connected)
+        if (currentConnection && currentConnection->isState == wlan_interface_state_connected)
         {
             NotifyHostConnection(
-                currentConnection.wlanAssociationAttributes.dot11Ssid,
+                currentConnection->wlanAssociationAttributes.dot11Ssid,
                 AdaptAuthAlgo(
-                    {currentConnection.wlanSecurityAttributes.dot11AuthAlgorithm, currentConnection.wlanSecurityAttributes.dot11CipherAlgorithm}));
+                    {currentConnection->wlanSecurityAttributes.dot11AuthAlgorithm, currentConnection->wlanSecurityAttributes.dot11CipherAlgorithm}));
         }
     }
     CATCH_LOG()
@@ -185,15 +185,15 @@ std::optional<ConnectedNetwork> RealWlanInterface::IsConnectedTo(const Ssid& req
     {
         const auto currentConnection = m_wlansvc->GetCurrentConnection(m_interfaceGuid);
         // Note: This does not handle transient interface states when connection is being setup
-        if (currentConnection.isState != wlan_interface_state_connected)
+        if (!currentConnection || currentConnection->isState != wlan_interface_state_connected)
         {
             return std::nullopt;
         }
 
         ConnectedNetwork network{
-            currentConnection.wlanAssociationAttributes.dot11Ssid,
-            toBssid(currentConnection.wlanAssociationAttributes.dot11Bssid),
-            currentConnection.wlanSecurityAttributes.dot11AuthAlgorithm
+            currentConnection->wlanAssociationAttributes.dot11Ssid,
+            toBssid(currentConnection->wlanAssociationAttributes.dot11Bssid),
+            currentConnection->wlanSecurityAttributes.dot11AuthAlgorithm
         };
 
         if (requestedSsid != network.ssid)
@@ -236,20 +236,32 @@ void RealWlanInterface::OnConnectComplete(const WLAN_CONNECTION_NOTIFICATION_DAT
     if (data.wlanReasonCode == ERROR_SUCCESS)
     {
         const auto connInfo = m_wlansvc->GetCurrentConnection(m_interfaceGuid);
+        if (!connInfo)
+        {
+            Log::Trace(
+                L"Could get the connection information after connecting the interface %ws", GuidToString(m_interfaceGuid).c_str());
+            std::scoped_lock connectLock(m_promiseMutex);
+            if (m_connectPromise)
+            {
+                m_connectPromise->set_value({WlanStatus::UnspecifiedFailure, ConnectedNetwork{}});
+                m_connectPromise = std::nullopt;
+            }
+            return;
+        }
 
         // Notify the client for the host connection outside of the lock
         NotifyHostConnection(
             data.dot11Ssid,
-            AdaptAuthAlgo({connInfo.wlanSecurityAttributes.dot11AuthAlgorithm, connInfo.wlanSecurityAttributes.dot11CipherAlgorithm}));
+            AdaptAuthAlgo({connInfo->wlanSecurityAttributes.dot11AuthAlgorithm, connInfo->wlanSecurityAttributes.dot11CipherAlgorithm}));
 
         // If there is a promise, this is a successful guest initiated connection
         std::scoped_lock connectLock(m_promiseMutex);
         if (m_connectPromise)
         {
             auto connectedNetwork = ConnectedNetwork{
-                connInfo.wlanAssociationAttributes.dot11Ssid,
-                toBssid(connInfo.wlanAssociationAttributes.dot11Bssid),
-                connInfo.wlanSecurityAttributes.dot11AuthAlgorithm};
+                connInfo->wlanAssociationAttributes.dot11Ssid,
+                toBssid(connInfo->wlanAssociationAttributes.dot11Bssid),
+                connInfo->wlanSecurityAttributes.dot11AuthAlgorithm};
 
             m_connectPromise->set_value({WlanStatus::Success, connectedNetwork});
             m_connectPromise = std::nullopt;

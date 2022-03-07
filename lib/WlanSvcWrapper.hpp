@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -35,7 +36,7 @@ public:
     virtual void Unsubscribe(const GUID& interfaceGuid) = 0;
 
     /// @brief Provide information about the currently connected network on `interfaceGuid`
-    virtual WLAN_CONNECTION_ATTRIBUTES GetCurrentConnection(const GUID& interfaceGuid) = 0;
+    virtual std::optional<WLAN_CONNECTION_ATTRIBUTES> GetCurrentConnection(const GUID& interfaceGuid) = 0;
 
     /// @brief Connect to a wlan network using a temporary profile
     virtual void Connect(const GUID& interfaceGuid, const std::wstring& profile, const DOT11_MAC_ADDRESS& bssid) = 0;
@@ -66,7 +67,7 @@ public:
     std::vector<GUID> EnumerateInterfaces() override;
     void Subscribe(const GUID& interfaceGuid, std::function<void(const WLAN_NOTIFICATION_DATA&)> callback) override;
     void Unsubscribe(const GUID& interfaceGuid) override;
-    WLAN_CONNECTION_ATTRIBUTES GetCurrentConnection(const GUID& interfaceGuid) override;
+    std::optional<WLAN_CONNECTION_ATTRIBUTES> GetCurrentConnection(const GUID& interfaceGuid) override;
     void Connect(const GUID& interfaceGuid, const std::wstring& profile, const DOT11_MAC_ADDRESS& bssid) override;
     void Disconnect(const GUID& interfaceGuid) override;
     void Scan(const GUID& interfaceGuid, DOT11_SSID* ssid = nullptr) override;

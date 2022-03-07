@@ -376,8 +376,10 @@ TEST_CASE("Handle disconnect requests with multiple interfaces", "[wlansvcOpHand
 
         auto disconnectResponse = opHandler->HandleDisconnectRequest(MakeDisconnectRequest(1));
         CHECK(fakeWlansvc->callCount.disconnect == 1);
-        CHECK(fakeWlansvc->GetCurrentConnection(Mock::c_intf1).isState == wlan_interface_state_disconnected);
-        CHECK(fakeWlansvc->GetCurrentConnection(Mock::c_intf2).isState == wlan_interface_state_connected);
+        const auto intf1Info = fakeWlansvc->GetCurrentConnection(Mock::c_intf1);
+        const auto intf2Info = fakeWlansvc->GetCurrentConnection(Mock::c_intf2);
+        CHECK((!intf1Info || intf1Info->isState == wlan_interface_state_disconnected));
+        CHECK((intf2Info && intf2Info->isState == wlan_interface_state_connected));
     }
 
     SECTION("Don't disconnect the host when connected to a user network")
@@ -391,7 +393,8 @@ TEST_CASE("Handle disconnect requests with multiple interfaces", "[wlansvcOpHand
 
         auto disconnectResponse = opHandler->HandleDisconnectRequest(MakeDisconnectRequest(1));
         CHECK(fakeWlansvc->callCount.disconnect == 0);
-        CHECK(fakeWlansvc->GetCurrentConnection(Mock::c_intf1).isState == wlan_interface_state_connected);
+        const auto intf1Info = fakeWlansvc->GetCurrentConnection(Mock::c_intf1);
+        CHECK((intf1Info && intf1Info->isState == wlan_interface_state_connected));
     }
 }
 

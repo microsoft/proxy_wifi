@@ -99,7 +99,7 @@ std::vector<GUID> WlanApiWrapperImpl::EnumerateInterfaces()
     return result;
 }
 
-WLAN_CONNECTION_ATTRIBUTES WlanApiWrapperImpl::GetCurrentConnection(const GUID& interfaceGuid)
+std::optional<WLAN_CONNECTION_ATTRIBUTES> WlanApiWrapperImpl::GetCurrentConnection(const GUID& interfaceGuid)
 {
     DWORD dataSize = 0;
     WLAN_CONNECTION_ATTRIBUTES* pCurrentConnection{nullptr};
@@ -110,8 +110,19 @@ WLAN_CONNECTION_ATTRIBUTES WlanApiWrapperImpl::GetCurrentConnection(const GUID& 
         }
     });
 
-    THROW_IF_WIN32_ERROR(m_wlanApi.WlanQueryInterface(
-        m_wlanHandle, &interfaceGuid, wlan_intf_opcode_current_connection, nullptr, &dataSize, reinterpret_cast<void**>(&pCurrentConnection), nullptr));
+    const auto err = m_wlanApi.WlanQueryInterface(
+        m_wlanHandle, &interfaceGuid, wlan_intf_opcode_current_connection, nullptr, &dataSize, reinterpret_cast<void**>(&pCurrentConnection), nullptr);
+
+    if (err == ERROR_INVALID_STATE)
+    {
+        // This means the interface is not connected
+        return std::nullopt;
+    }
+    else if (err != ERROR_SUCCESS)
+    {
+        THROW_WIN32(err);
+    }
+
     THROW_IF_NULL_ALLOC(pCurrentConnection);
     return *pCurrentConnection;
 }
