@@ -76,7 +76,7 @@ void WlanApiWrapperImpl::Unsubscribe(const GUID& interfaceGuid)
 
 std::vector<GUID> WlanApiWrapperImpl::EnumerateInterfaces()
 {
-    WLAN_INTERFACE_INFO_LIST* pInterfaces;
+    WLAN_INTERFACE_INFO_LIST* pInterfaces{nullptr};
     auto cleanup = wil::scope_exit([&] {
         if (pInterfaces)
         {
@@ -102,7 +102,7 @@ std::vector<GUID> WlanApiWrapperImpl::EnumerateInterfaces()
 WLAN_CONNECTION_ATTRIBUTES WlanApiWrapperImpl::GetCurrentConnection(const GUID& interfaceGuid)
 {
     DWORD dataSize = 0;
-    WLAN_CONNECTION_ATTRIBUTES* pCurrentConnection;
+    WLAN_CONNECTION_ATTRIBUTES* pCurrentConnection{nullptr};
     auto cleanup = wil::scope_exit([&] {
         if (pCurrentConnection)
         {
@@ -146,7 +146,7 @@ void WlanApiWrapperImpl::Scan(const GUID& interfaceGuid, DOT11_SSID* ssid)
 
 std::vector<ScannedBss> WlanApiWrapperImpl::GetScannedBssList(const GUID& interfaceGuid)
 {
-    WLAN_BSS_LIST* pBssList;
+    WLAN_BSS_LIST* pBssList{nullptr};
     auto cleanup = wil::scope_exit([&] {
         if (pBssList)
         {
