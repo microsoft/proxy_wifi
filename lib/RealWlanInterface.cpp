@@ -239,7 +239,7 @@ void RealWlanInterface::OnConnectComplete(const WLAN_CONNECTION_NOTIFICATION_DAT
         if (!connInfo)
         {
             Log::Trace(
-                L"Could get the connection information after connecting the interface %ws", GuidToString(m_interfaceGuid).c_str());
+                L"Could not get the connection information after connecting the interface %ws", GuidToString(m_interfaceGuid).c_str());
             std::scoped_lock connectLock(m_promiseMutex);
             if (m_connectPromise)
             {
