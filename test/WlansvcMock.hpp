@@ -201,19 +201,20 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
         m_notifCallbacks[interfaceGuid] = nullptr;
     }
 
-    WLAN_CONNECTION_ATTRIBUTES GetCurrentConnection(const GUID& interfaceGuid) override
+    std::optional<WLAN_CONNECTION_ATTRIBUTES> GetCurrentConnection(const GUID& interfaceGuid) override
     {
         auto connectedBss = m_interfaces.at(interfaceGuid).m_connectedBss;
-        WLAN_CONNECTION_ATTRIBUTES r{};
-        r.isState = connectedBss ? wlan_interface_state_connected : wlan_interface_state_disconnected;
         if (connectedBss)
         {
+            WLAN_CONNECTION_ATTRIBUTES r{};
+            r.isState = connectedBss ? wlan_interface_state_connected : wlan_interface_state_disconnected;
             r.wlanAssociationAttributes.dot11Ssid = connectedBss->bss.ssid;
             std::copy(connectedBss->bss.bssid.cbegin(), connectedBss->bss.bssid.cend(), r.wlanAssociationAttributes.dot11Bssid);
             r.wlanSecurityAttributes.dot11AuthAlgorithm = connectedBss->network.dot11DefaultAuthAlgorithm;
             r.wlanSecurityAttributes.dot11CipherAlgorithm = connectedBss->network.dot11DefaultCipherAlgorithm;
+            return r;
         }
-        return r;
+        return std::nullopt;
     }
 
     void Connect(const GUID& interfaceGuid, const std::wstring& profile, const DOT11_MAC_ADDRESS&) override

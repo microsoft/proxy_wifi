@@ -10,7 +10,6 @@ target_include_directories(proxy-wifi
 
 target_link_libraries(proxy-wifi
     PUBLIC
-        $<$<NOT:$<BOOL:${BYPASS_WLANAPI_DEPENDENCY}>>:wlanapi.lib>
         Mswsock.lib
         Ws2_32.lib
     PRIVATE

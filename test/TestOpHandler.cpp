@@ -17,7 +17,8 @@ using namespace std::chrono_literals;
 using namespace ProxyWifi;
 
 // Setup helper functions
-std::unique_ptr<OperationHandler> MakeUnitTestOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper> fakeWlansvc, FakeNetworkProvider provider = {}, ProxyWifiObserver* pObserver = nullptr)
+std::unique_ptr<OperationHandler> MakeUnitTestOperationHandler(
+    std::shared_ptr<Wlansvc::WlanApiWrapper> fakeWlansvc, FakeNetworkProvider provider = {}, ProxyWifiObserver* pObserver = nullptr)
 {
     return MakeWlansvcOperationHandler(fakeWlansvc, std::move(provider), pObserver);
 }
@@ -68,12 +69,6 @@ DisconnectRequest MakeDisconnectRequest(uint32_t sessionId)
 }
 
 // Tests for WlansvcOperationHandler.cpp
-
-TEST_CASE("The WlanApiWrapper is optionnal", "[wlansvcOpHandler]")
-{
-    auto opHandler = MakeWlansvcOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper>{}, {}, {});
-    CHECK(opHandler);
-}
 
 TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
 {
@@ -366,10 +361,9 @@ TEST_CASE("Handle disconnect requests with multiple interfaces", "[wlansvcOpHand
 
     Ssid ssid{"ethernet"};
     DOT11_MAC_ADDRESS bssid{0, 0, 0, 0, 0, 1};
-    auto opHandler = MakeUnitTestOperationHandler(
-         fakeWlansvc, [&] {
-             return std::vector<WifiNetworkInfo>{{static_cast<DOT11_SSID>(ssid), bssid}};
-         });
+    auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc, [&] {
+        return std::vector<WifiNetworkInfo>{{static_cast<DOT11_SSID>(ssid), bssid}};
+    });
 
     SECTION("Only disconnect the guest connected interface")
     {
@@ -382,8 +376,10 @@ TEST_CASE("Handle disconnect requests with multiple interfaces", "[wlansvcOpHand
 
         auto disconnectResponse = opHandler->HandleDisconnectRequest(MakeDisconnectRequest(1));
         CHECK(fakeWlansvc->callCount.disconnect == 1);
-        CHECK(fakeWlansvc->GetCurrentConnection(Mock::c_intf1).isState == wlan_interface_state_disconnected);
-        CHECK(fakeWlansvc->GetCurrentConnection(Mock::c_intf2).isState == wlan_interface_state_connected);
+        const auto intf1Info = fakeWlansvc->GetCurrentConnection(Mock::c_intf1);
+        const auto intf2Info = fakeWlansvc->GetCurrentConnection(Mock::c_intf2);
+        CHECK((!intf1Info || intf1Info->isState == wlan_interface_state_disconnected));
+        CHECK((intf2Info && intf2Info->isState == wlan_interface_state_connected));
     }
 
     SECTION("Don't disconnect the host when connected to a user network")
@@ -397,7 +393,8 @@ TEST_CASE("Handle disconnect requests with multiple interfaces", "[wlansvcOpHand
 
         auto disconnectResponse = opHandler->HandleDisconnectRequest(MakeDisconnectRequest(1));
         CHECK(fakeWlansvc->callCount.disconnect == 0);
-        CHECK(fakeWlansvc->GetCurrentConnection(Mock::c_intf1).isState == wlan_interface_state_connected);
+        const auto intf1Info = fakeWlansvc->GetCurrentConnection(Mock::c_intf1);
+        CHECK((intf1Info && intf1Info->isState == wlan_interface_state_connected));
     }
 }
 
@@ -468,18 +465,18 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::Success));
         CHECK(
             pObserver->notifs == std::vector<std::pair<Notif, Type>>{
-                                    {Notif::GuestConnectRequest, Type::GuestDirected},
-                                    {Notif::HostConnect, Type::None},
-                                    {Notif::GuestConnectComplete, Type::GuestDirected}});
+                                     {Notif::GuestConnectRequest, Type::GuestDirected},
+                                     {Notif::HostConnect, Type::None},
+                                     {Notif::GuestConnectComplete, Type::GuestDirected}});
 
         pObserver->notifs.clear();
         auto disconnectResponse = opHandler->HandleDisconnectRequest(disconnectRequest);
         opHandler->DrainClientNotifications();
         CHECK(
             pObserver->notifs == std::vector<std::pair<Notif, Type>>{
-                                    {Notif::GuestDisconnectRequest, Type::GuestDirected},
-                                    {Notif::HostDisconnect, Type::None},
-                                    {Notif::GuestDisconnectComplete, Type::GuestDirected}});
+                                     {Notif::GuestDisconnectRequest, Type::GuestDirected},
+                                     {Notif::HostDisconnect, Type::None},
+                                     {Notif::GuestDisconnectComplete, Type::GuestDirected}});
     }
 
     SECTION("Notifications on host initiated operations")
@@ -496,7 +493,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         fakeWlansvc->WaitForNotifComplete();
         opHandler->DrainClientNotifications();
 
-        CHECK(pObserver->notifs == std::vector<std::pair<Notif,Type>>{{Notif::HostDisconnect, Type::None}});
+        CHECK(pObserver->notifs == std::vector<std::pair<Notif, Type>>{{Notif::HostDisconnect, Type::None}});
     }
 
     SECTION("Notifications on mirroring operations")
@@ -509,17 +506,20 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         opHandler->DrainClientNotifications();
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::Success));
         CHECK(fakeWlansvc->callCount.connect == 0);
-        CHECK(pObserver->notifs == std::vector<std::pair<Notif, Type>>{
-                                    {Notif::HostConnect, Type::None},
-                                    {Notif::GuestConnectRequest, Type::HostMirroring},
-                                    {Notif::GuestConnectComplete, Type::HostMirroring}});
+        CHECK(
+            pObserver->notifs == std::vector<std::pair<Notif, Type>>{
+                                     {Notif::HostConnect, Type::None},
+                                     {Notif::GuestConnectRequest, Type::HostMirroring},
+                                     {Notif::GuestConnectComplete, Type::HostMirroring}});
 
         pObserver->notifs.clear();
 
         auto disconnectResponse = opHandler->HandleDisconnectRequest(disconnectRequest);
         opHandler->DrainClientNotifications();
         CHECK(fakeWlansvc->callCount.disconnect == 0);
-        CHECK(pObserver->notifs == std::vector<std::pair<Notif, Type>>{
+        CHECK(
+            pObserver->notifs ==
+            std::vector<std::pair<Notif, Type>>{
                 {Notif::GuestDisconnectRequest, Type::HostMirroring}, {Notif::GuestDisconnectComplete, Type::HostMirroring}});
 
         pObserver->notifs.clear();
@@ -566,8 +566,8 @@ TEST_CASE("Notify client for guest scans", "[wlansvcOpHandler][clientNotificatio
 
 TEST_CASE("Provide the authentication algorithm on host connections", "[wlansvcOpHandler][clientNotification]")
 {
-    auto fakeWlansvc =
-        std::make_shared<Mock::WlanSvcFake>(std::vector{Mock::c_intf1}, std::vector{Mock::c_wpa2PskNetwork, Mock::c_openNetwork, Mock::c_enterpriseNetwork});
+    auto fakeWlansvc = std::make_shared<Mock::WlanSvcFake>(
+        std::vector{Mock::c_intf1}, std::vector{Mock::c_wpa2PskNetwork, Mock::c_openNetwork, Mock::c_enterpriseNetwork});
 
     enum class EventSource
     {
@@ -575,7 +575,7 @@ TEST_CASE("Provide the authentication algorithm on host connections", "[wlansvcO
         Guest
     };
 
-    struct TestObserver: public ProxyWifiObserver
+    struct TestObserver : public ProxyWifiObserver
     {
         void OnHostConnection(const ConnectCompleteArgs& connectInfo) noexcept override
         {
@@ -640,7 +640,7 @@ TEST_CASE("Notify client for initially connected networks", "[wlansvcOpHandler][
     auto fakeWlansvc =
         std::make_shared<Mock::WlanSvcFake>(std::vector{Mock::c_intf1}, std::vector{Mock::c_wpa2PskNetwork, Mock::c_openNetwork});
 
-    struct TestObserver: public ProxyWifiObserver
+    struct TestObserver : public ProxyWifiObserver
     {
         void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
@@ -667,7 +667,7 @@ TEST_CASE("Initial notifications cannot deadlock a cient", "[wlansvcOpHandler][c
     fakeWlansvc->ConnectHost(Mock::c_intf1, Mock::c_wpa2PskNetwork.bss.ssid);
     fakeWlansvc->WaitForNotifComplete();
 
-    struct TestObserver: public ProxyWifiObserver
+    struct TestObserver : public ProxyWifiObserver
     {
         void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
@@ -856,7 +856,7 @@ TEST_CASE("Notifications for fake networks use FakeInterfaceGuid", "[wlansvcOpHa
 {
     auto fakeWlansvc = std::make_shared<Mock::WlanSvcFake>();
 
-    struct TestObserver: public ProxyWifiObserver
+    struct TestObserver : public ProxyWifiObserver
     {
         void OnGuestDisconnectionCompletion(OperationType, OperationStatus, const DisconnectCompleteArgs& disconnectInfo) noexcept override
         {

@@ -45,7 +45,7 @@ jobs:
     - name: Build
       run: |
         mkdir build && pushd build
-        cmake -A ${{ matrix.arch }} -DBYPASS_WLANAPI_DEPENDENCY=ON -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
+        cmake -A ${{ matrix.arch }} -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
         cmake --build . --parallel --config ${{ matrix.build_type }}
         popd
 
