@@ -18,6 +18,8 @@
 
 namespace ProxyWifi::Wlansvc {
 
+constexpr const wchar_t* c_wlanApi = L"wlanApi.dll";
+
 /// @brief Wrapper around the Wlansvc API
 /// Expose the parts of the Wlansvc API used by the lib in a more C++ compatible way and facilitate unit-testing
 class WlanApiWrapper
@@ -85,18 +87,18 @@ private:
 
     struct WlanApiDynFunctions
     {
-        DynamicFunction<decltype(::WlanCloseHandle)> WlanCloseHandle{L"wlanApi.dll", "WlanCloseHandle"};
-        DynamicFunction<decltype(::WlanConnect)> WlanConnect{L"wlanApi.dll", "WlanConnect"};
-        DynamicFunction<decltype(::WlanDisconnect)> WlanDisconnect{L"wlanApi.dll", "WlanDisconnect"};
-        DynamicFunction<decltype(::WlanEnumInterfaces)> WlanEnumInterfaces{L"wlanApi.dll", "WlanEnumInterfaces"};
-        DynamicFunction<decltype(::WlanFreeMemory)> WlanFreeMemory{L"wlanApi.dll", "WlanFreeMemory"};
+        DynamicFunction<decltype(::WlanCloseHandle)> WlanCloseHandle{c_wlanApi, "WlanCloseHandle"};
+        DynamicFunction<decltype(::WlanConnect)> WlanConnect{c_wlanApi, "WlanConnect"};
+        DynamicFunction<decltype(::WlanDisconnect)> WlanDisconnect{c_wlanApi, "WlanDisconnect"};
+        DynamicFunction<decltype(::WlanEnumInterfaces)> WlanEnumInterfaces{c_wlanApi, "WlanEnumInterfaces"};
+        DynamicFunction<decltype(::WlanFreeMemory)> WlanFreeMemory{c_wlanApi, "WlanFreeMemory"};
         DynamicFunction<decltype(::WlanGetAvailableNetworkList)> WlanGetAvailableNetworkList{
-            L"wlanApi.dll", "WlanGetAvailableNetworkList"};
-        DynamicFunction<decltype(::WlanGetNetworkBssList)> WlanGetNetworkBssList{L"wlanApi.dll", "WlanGetNetworkBssList"};
-        DynamicFunction<decltype(::WlanOpenHandle)> WlanOpenHandle{L"wlanApi.dll", "WlanOpenHandle"};
-        DynamicFunction<decltype(::WlanQueryInterface)> WlanQueryInterface{L"wlanApi.dll", "WlanQueryInterface"};
-        DynamicFunction<decltype(::WlanRegisterNotification)> WlanRegisterNotification{L"wlanApi.dll", "WlanRegisterNotification"};
-        DynamicFunction<decltype(::WlanScan)> WlanScan{L"wlanApi.dll", "WlanScan"};
+            c_wlanApi, "WlanGetAvailableNetworkList"};
+        DynamicFunction<decltype(::WlanGetNetworkBssList)> WlanGetNetworkBssList{c_wlanApi, "WlanGetNetworkBssList"};
+        DynamicFunction<decltype(::WlanOpenHandle)> WlanOpenHandle{c_wlanApi, "WlanOpenHandle"};
+        DynamicFunction<decltype(::WlanQueryInterface)> WlanQueryInterface{c_wlanApi, "WlanQueryInterface"};
+        DynamicFunction<decltype(::WlanRegisterNotification)> WlanRegisterNotification{c_wlanApi, "WlanRegisterNotification"};
+        DynamicFunction<decltype(::WlanScan)> WlanScan{c_wlanApi, "WlanScan"};
     };
     WlanApiDynFunctions m_wlanApi{};
 };
