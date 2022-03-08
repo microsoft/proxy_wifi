@@ -7,6 +7,7 @@
 #include <wlanapi.h>
 
 #include <future>
+#include <mutex>
 #include <optional>
 
 #include "Networks.hpp"
@@ -48,14 +49,14 @@ private:
     const std::shared_ptr<Wlansvc::WlanApiWrapper> m_wlansvc;
     const GUID m_interfaceGuid;
 
-    std::mutex m_promiseMutex;
+    mutable std::mutex m_promiseMutex;
     std::optional<std::promise<std::pair<WlanStatus, ConnectedNetwork>>> m_connectPromise;
     std::optional<std::promise<void>> m_disconnectPromise;
     std::optional<std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>>> m_scanPromise;
     /// @brief Indicate a scan was requested to wlansvc and no completion notif was recieved yet
     bool m_scanRunning = false;
 
-    std::mutex m_notifMutex;
+    mutable std::mutex m_notifMutex;
     INotificationHandler* m_notifCallback{};
 
     inline void NotifyHostConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
