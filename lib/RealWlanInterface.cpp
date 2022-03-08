@@ -158,7 +158,10 @@ CATCH_LOG()
 
 void RealWlanInterface::SetNotificationHandler(INotificationHandler* handler)
 {
-    m_notifCallback = handler;
+    {
+        auto lock = std::scoped_lock(m_notifMutex);
+        m_notifCallback = handler;
+    }
 
     // Send an initial notification if this interface is connected
     try

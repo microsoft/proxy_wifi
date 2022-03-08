@@ -55,10 +55,12 @@ private:
     /// @brief Indicate a scan was requested to wlansvc and no completion notif was recieved yet
     bool m_scanRunning = false;
 
+    std::mutex m_notifMutex;
     INotificationHandler* m_notifCallback{};
 
     inline void NotifyHostConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostConnection(m_interfaceGuid, ssid, authAlgo);
@@ -67,6 +69,7 @@ private:
 
     inline void NotifyHostDisconnection(const Ssid& ssid) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostDisconnection(m_interfaceGuid, ssid);
@@ -75,6 +78,7 @@ private:
 
     inline void NotifySignalQualityChange(unsigned long signal) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostSignalQualityChange(m_interfaceGuid, signal);
@@ -83,6 +87,7 @@ private:
 
     inline void NotifyScanResults(std::vector<ScannedBss> scannedBss, ScanStatus status) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostScanResults(m_interfaceGuid, scannedBss, status);
