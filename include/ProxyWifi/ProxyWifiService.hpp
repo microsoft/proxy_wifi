@@ -99,6 +99,8 @@ enum class OperationType
 class ProxyWifiObserver
 {
 public:
+    virtual ~ProxyWifiObserver() = default;
+
     struct ConnectRequestArgs {
         DOT11_SSID ssid;
     };
