@@ -20,7 +20,7 @@ void ScanResponseBuilder::AddBss(ScannedBss bss)
     m_bssList.push_back(std::move(bss));
 }
 
-ScanResponse ScanResponseBuilder::Build()
+ScanResponse ScanResponseBuilder::Build() const
 {
     auto allocSize = sizeof(proxy_wifi_scan_response) + m_bssList.size() * sizeof(proxy_wifi_bss);
     for (const auto& bss : m_bssList)
@@ -31,7 +31,7 @@ ScanResponse ScanResponseBuilder::Build()
     ScanResponse scanResponse{allocSize, m_bssList.size()};
 
     auto nextIe = scanResponse.getIes();
-    for (auto i = 0; i < m_bssList.size(); ++i)
+    for (auto i = 0u; i < m_bssList.size(); ++i)
     {
         const auto& bss = m_bssList[i];
         scanResponse->bss[i] = proxy_wifi_bss{

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#pragma once
-
 #include "RealWlanInterface.hpp"
 
 #include "StringUtils.hpp"
@@ -71,7 +69,7 @@ DOT11_AUTH_ALGORITHM AdaptAuthAlgo(std::pair<DOT11_AUTH_ALGORITHM, DOT11_CIPHER_
 ScannedBss BuildFakeScanResult(const ScannedBss& bss)
 {
     // Use a fake Bss to generated the scan result IEs
-    FakeBss fakeBss{
+    const FakeBss fakeBss{
         BssCapability::Ess | BssCapability::Privacy,
         bss.rssi,
         bss.channelCenterFreq,
@@ -108,8 +106,8 @@ std::vector<ScannedBss> AdaptScanResult(const std::vector<ScannedBss>& bssList, 
 
 } // namespace
 
-RealWlanInterface::RealWlanInterface(const std::shared_ptr<Wlansvc::WlanApiWrapper>& wlansvc, const GUID& interfaceGuid)
-    : m_wlansvc{wlansvc}, m_interfaceGuid{interfaceGuid}
+RealWlanInterface::RealWlanInterface(std::shared_ptr<Wlansvc::WlanApiWrapper> wlansvc, const GUID& interfaceGuid)
+    : m_wlansvc{std::move(wlansvc)}, m_interfaceGuid{interfaceGuid}
 {
     m_wlansvc->Subscribe(m_interfaceGuid, [this](const auto& n) { WlanNotificationHandler(n); });
 }
@@ -120,7 +118,7 @@ RealWlanInterface::~RealWlanInterface()
     {
         m_wlansvc->Unsubscribe(m_interfaceGuid);
     }
-    CATCH_LOG();
+    CATCH_LOG()
 }
 
 void RealWlanInterface::WlanNotificationHandler(const WLAN_NOTIFICATION_DATA& notification) noexcept
@@ -150,6 +148,9 @@ try
         {
         case wlan_notification_msm_signal_quality_change:
             OnSignalQualityChange(*static_cast<unsigned long*>(notification.pData));
+            break;
+        default:
+            return;
         }
     }
 }
@@ -375,7 +376,7 @@ void RealWlanInterface::OnScanComplete()
     }
 }
 
-void RealWlanInterface::OnSignalQualityChange(unsigned long signal)
+void RealWlanInterface::OnSignalQualityChange(unsigned long signal) const
 {
     NotifySignalQualityChange(signal);
 }

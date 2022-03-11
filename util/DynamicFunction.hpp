@@ -40,6 +40,6 @@ private:
     }
 
 private:
-    std::function<R(Args...)> m_function;
     wil::unique_hmodule m_module;
+    std::function<R(Args...)> m_function;
 };

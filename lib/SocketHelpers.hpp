@@ -7,8 +7,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include <guiddef.h>
-#include <winsock2.h>
+#include <WinSock2.h>
 #include <hvsocket.h>
 #include <wil/resource.h>
 
@@ -71,9 +70,8 @@ class AcceptAsyncContext
 public:
     /// @brief Asynchronously accept a connection
     /// @param listenSocket The socket connection are listened on
-    /// @param onAccept Event that will be raised when a connection is accepted
     /// @return The socket the connection will be accepted on
-    static AcceptAsyncContext Accept(const wil::unique_socket& listenSocket, std::function<std::pair<wil::unique_socket, size_t>()> createSocket);
+    static AcceptAsyncContext Accept(const wil::unique_socket& listenSocket, const std::function<std::pair<wil::unique_socket, size_t>()>& createSocket);
 
     ~AcceptAsyncContext();
 
@@ -103,7 +101,7 @@ private:
 };
 
 /// @brief Helper function which receives a single protocol message on a generic socket.
-std::optional<Message> ReceiveProxyWifiMessage(wil::unique_socket& socket);
+std::optional<Message> ReceiveProxyWifiMessage(const wil::unique_socket& socket);
 
 /// @brief Helper function which sends a single protocol message on a generic socket.
 void SendProxyWifiMessage(wil::unique_socket& socket, const Message& message);

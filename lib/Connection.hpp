@@ -2,13 +2,10 @@
 // Licensed under the MIT license.
 #pragma once
 
-#include <atomic>
-#include <functional>
 #include <memory>
 #include <optional>
-#include <shared_mutex>
 
-#include <winsock2.h>
+#include <WinSock2.h>
 #include <wil/resource.h>
 
 #include "Messages.hpp"
@@ -27,10 +24,10 @@ public:
     /// @brief Creates a new wifi proxy connection.
     ///
     /// @param operations The object used to handle protocol messages.
-    Connection(std::shared_ptr<OperationHandler>& operations);
+    Connection(std::shared_ptr<OperationHandler> operations);
 
     /// @brief Destroy the Connection object.
-    virtual ~Connection(){};
+    virtual ~Connection() = default;
 
     /// @brief Start accepting requests on this connection.
     ///
@@ -60,8 +57,9 @@ class ConnectionSocket : public Connection
 {
 public:
     /// @brief Create a new connection using a socket as the transport.
+    /// @param socket The socket used for the connection
     /// @param operations The object used to handle protocol messages.
-    ConnectionSocket(wil::unique_socket socket, std::shared_ptr<OperationHandler>& operations);
+    ConnectionSocket(wil::unique_socket socket, const std::shared_ptr<OperationHandler>& operations);
 
 private:
     /// @brief Sends a protocol message on the connection.

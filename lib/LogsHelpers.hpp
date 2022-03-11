@@ -9,7 +9,7 @@ namespace ProxyWifi {
 
 /// @brief Add a WIL failure callback for the current thread.
 /// This allows to log messages from WIL macro and exceptions
-auto SetThreadWilFailureLogger()
+inline auto SetThreadWilFailureLogger()
 {
     return wil::ThreadFailureCallback([](const wil::FailureInfo& failure) noexcept {
         constexpr std::size_t sizeOfLogMessageWithNul = 2048;

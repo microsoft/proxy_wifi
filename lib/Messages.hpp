@@ -5,14 +5,9 @@
 
 #pragma once
 
-
-#include <windows.h>
-#include <wlanapi.h>
-
 #include <array>
 #include <algorithm>
 #include <cstdint>
-#include <memory>
 #include <stdexcept>
 #include <string>
 #include <sstream>
@@ -166,7 +161,7 @@ public:
         return Message(Operation, std::move(buffer.m_buffer));
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return GetProtocolMessageTypeName(Operation);
     }
@@ -183,7 +178,7 @@ public:
     {
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         std::wostringstream stream;
         stream << L"Connect request, Ssid: "
@@ -224,7 +219,7 @@ public:
         get()->session_id = sessionId;
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return L"Connect response, Result code: " + std::to_wstring(get()->result_code) + L", Session id: " +
                std::to_wstring(get()->session_id) + L", BssId: " + BssidToString(get()->bssid);
@@ -239,7 +234,7 @@ public:
     {
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return L"Disconnect request, Session id: " + std::to_wstring(get()->session_id);
     }
@@ -257,7 +252,7 @@ public:
     {
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return L"Scan request, Target ssid: " +
                (get()->ssid_len == 0
@@ -282,7 +277,7 @@ public:
         return m_ies;
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return L"Scan response, Number of reported Bss: " + std::to_wstring(get()->num_bss) + L", Total size " +
                std::to_wstring(get()->total_size) + L" bytes";
@@ -300,7 +295,7 @@ class ScanResponseBuilder
 {
 public:
     void AddBss(ScannedBss bss);
-    ScanResponse Build();
+    ScanResponse Build() const;
 
 private:
     bool IsBssAlreadyPresent(const Bssid& bssid);
@@ -315,7 +310,7 @@ public:
         get()->session_id = sessionId;
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return L"Disconnect notification, Session id: " + std::to_wstring(get()->session_id);
     }
@@ -329,7 +324,7 @@ public:
         get()->signal = signal;
     }
 
-    const std::wstring Describe() const
+    std::wstring Describe() const
     {
         return L"Signal quality notification, Signal: " + std::to_wstring(get()->signal);
     }

@@ -50,13 +50,18 @@ public:
         });
     }
 
-    virtual ~WlansvcOperationHandler()
+    ~WlansvcOperationHandler() override
     {
         if (m_wlansvc)
         {
             m_wlansvc->Unsubscribe(GUID{});
         }
     }
+
+    WlansvcOperationHandler(const WlansvcOperationHandler&) = delete;
+    WlansvcOperationHandler(WlansvcOperationHandler&&) = delete;
+    WlansvcOperationHandler& operator=(const WlansvcOperationHandler&) = delete;
+    WlansvcOperationHandler& operator= (WlansvcOperationHandler&&) = delete;
 
 private:
     std::shared_ptr<Wlansvc::WlanApiWrapper> m_wlansvc;

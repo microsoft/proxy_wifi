@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 #pragma once
 
-#include <windows.h>
+#include <Windows.h>
 #include <wlanapi.h>
 #include <wil/common.h>
 #include <gsl/span>
@@ -247,7 +247,7 @@ public:
         return m_ssid;
     }
 
-    const uint8_t size() const noexcept
+    uint8_t size() const noexcept
     {
         // `m_ssid.size()` <= c_max_ssid_length = 32 as a class invariant
         return static_cast<uint8_t>(m_ssid.size());

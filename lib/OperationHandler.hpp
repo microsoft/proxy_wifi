@@ -2,16 +2,12 @@
 // Licensed under the MIT license.
 #pragma once
 
-#include <any>
-#include <chrono>
 #include <functional>
-#include <iterator>
 #include <memory>
 #include <shared_mutex>
 #include <variant>
 #include <vector>
 
-#include "Networks.hpp"
 #include "Messages.hpp"
 #include "WlanInterface.hpp"
 #include "WorkQueue.hpp"
@@ -27,13 +23,13 @@ public:
     OperationHandler(ProxyWifiObserver* pObserver, std::vector<std::unique_ptr<IWlanInterface>> wlanInterfaces)
         : m_pClientObserver{pObserver}, m_wlanInterfaces{std::move(wlanInterfaces)}
     {
-        for (auto& wlanIntf: m_wlanInterfaces)
+        for (const auto& wlanIntf: m_wlanInterfaces)
         {
             wlanIntf->SetNotificationHandler(this);
         }
     }
 
-    virtual ~OperationHandler()
+    ~OperationHandler() override
     {
         // First, destroy all interfaces so no notification will be queued on a destroyed workqueue
         m_wlanInterfaces.clear();
@@ -41,6 +37,11 @@ public:
         // Then cancel async works before the object destruction to ensure nothing reference `this`
         m_serializedRunner.Cancel();
     }
+
+    OperationHandler(const OperationHandler&) = delete;
+    OperationHandler(OperationHandler&&) = delete;
+    OperationHandler& operator=(const OperationHandler&) = delete;
+    OperationHandler& operator=(OperationHandler&&) = delete;
 
     /// @brief Add an interface to the operation handler
     /// Takes a builder function instead of the interface directly to create the interface in the work queue

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <windows.h>
+#include <Windows.h>
 #include <wlantypes.h>
 
 #include <future>
@@ -12,7 +12,6 @@
 
 #include "Networks.hpp"
 #include "Iee80211Utils.hpp"
-#include "ProxyWifi/ProxyWifiService.hpp"
 
 namespace ProxyWifi {
 
@@ -20,7 +19,7 @@ namespace ProxyWifi {
 class INotificationHandler
 {
 public:
-    virtual ~INotificationHandler() {}
+    virtual ~INotificationHandler() = default;
 
     /// @brief Must be called by the interfaces when they connect to a network
     virtual void OnHostConnection(const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) = 0;
@@ -37,7 +36,7 @@ public:
 class IWlanInterface
 {
 public:
-    virtual ~IWlanInterface() {};
+    virtual ~IWlanInterface() = default;
 
     /// @brief Allows to provide the callback the interface will call on specific events
     virtual void SetNotificationHandler(INotificationHandler* notificationHandler) = 0;

@@ -2,10 +2,9 @@
 // Licensed under the MIT license.
 #include <utility>
 
-#include <wil/result.h>
+#include <wil/result_macros.h>
 
 #include "ClientWlanInterface.hpp"
-#include "LogsHelpers.hpp"
 #include "OperationHandlerBuilder.hpp"
 #include "StringUtils.hpp"
 #include "ProxyWifiServiceImpl.hpp"
@@ -54,8 +53,8 @@ std::shared_ptr<OperationHandler> GetOperationHandler(
 } // namespace
 
 WifiNetworkInfo::WifiNetworkInfo(const DOT11_SSID& ssid, const DOT11_MAC_ADDRESS& bssid)
+    : ssid{ssid}
 {
-    this->ssid = ssid;
     memcpy_s(this->bssid, sizeof this->bssid, bssid, sizeof bssid);
 }
 
@@ -87,9 +86,10 @@ void ProxyWifiCommon::Stop()
 }
 
 ProxyWifiHyperVSettings::ProxyWifiHyperVSettings(const GUID& guestVmId, unsigned short requestResponsePort, unsigned short notificationPort, OperationMode mode)
-    : GuestVmId(guestVmId),
+    : 
       RequestResponsePort(requestResponsePort),
       NotificationPort(notificationPort),
+        GuestVmId(guestVmId),
       ProxyMode(mode)
 {
 }
@@ -115,16 +115,16 @@ const ProxyWifiHyperVSettings& ProxyWifiHyperV::Settings() const
     return m_settings;
 }
 
-ProxyWifiTcpSettings::ProxyWifiTcpSettings(const std::string& listenIp, unsigned short requestResponsePort, unsigned short notificationPort, OperationMode proxyMode)
-    : ListenIp(listenIp),
-      RequestResponsePort(requestResponsePort),
+ProxyWifiTcpSettings::ProxyWifiTcpSettings(std::string listenIp, unsigned short requestResponsePort, unsigned short notificationPort, OperationMode proxyMode)
+    : RequestResponsePort(requestResponsePort),
       NotificationPort(notificationPort),
+      ListenIp(std::move(listenIp)),
       ProxyMode(proxyMode)
 {
 }
 
-ProxyWifiTcpSettings::ProxyWifiTcpSettings(const std::string& listenIp)
-    : ListenIp(listenIp)
+ProxyWifiTcpSettings::ProxyWifiTcpSettings(std::string listenIp)
+    : ListenIp(std::move(listenIp))
 {
 }
 

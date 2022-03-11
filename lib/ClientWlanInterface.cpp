@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#pragma once
-
 #include "ClientWlanInterface.hpp"
 
 #include "StringUtils.hpp"
@@ -11,7 +9,7 @@
 namespace ProxyWifi {
 
 ClientWlanInterface::ClientWlanInterface(const GUID& interfaceGuid, std::function<std::vector<WifiNetworkInfo>()> callback)
-    : m_interfaceGuid{interfaceGuid}, m_getClientBssCallback{callback}
+    : m_getClientBssCallback{std::move(callback)}, m_interfaceGuid{interfaceGuid}
 {
 }
 
@@ -28,7 +26,7 @@ const GUID& ClientWlanInterface::GetGuid() const noexcept
 std::optional<ConnectedNetwork> ClientWlanInterface::IsConnectedTo(const Ssid& requestedSsid) noexcept
 {
     const auto clientNetworks = GetBssFromClient();
-    auto network =
+    const auto network =
         std::find_if(clientNetworks.cbegin(), clientNetworks.cend(), [&](const auto& n) { return n.ssid == requestedSsid; });
 
     if (network == clientNetworks.cend())
@@ -47,7 +45,7 @@ std::optional<ConnectedNetwork> ClientWlanInterface::IsConnectedTo(const Ssid& r
 std::future<std::pair<WlanStatus, ConnectedNetwork>> ClientWlanInterface::Connect(const Ssid& requestedSsid, const Bssid&, const WlanSecurity&)
 {
     const auto clientNetworks = GetBssFromClient();
-    auto network =
+    const auto network =
         std::find_if(clientNetworks.cbegin(), clientNetworks.cend(), [&](const auto& n) { return n.ssid == requestedSsid; });
 
     std::promise<std::pair<WlanStatus, ConnectedNetwork>> promise;
@@ -91,7 +89,7 @@ std::future<std::vector<ScannedBss>> ClientWlanInterface::Scan(std::optional<con
 
         // Create a wpa2psk network with the requested SSID and BSSID
         FakeBss fakeBss;
-        fakeBss.capabilities = BssCapability::Ess | BssCapability::Privacy,
+        fakeBss.capabilities = BssCapability::Ess | BssCapability::Privacy;
         fakeBss.ssid = bss.ssid;
         fakeBss.bssid = toBssid(bss.bssid);
         fakeBss.akmSuites = {AkmSuite::Psk};

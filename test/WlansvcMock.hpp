@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+#pragma once
+
 #include <catch2/catch.hpp>
-#include "WlansvcWrapper.hpp"
+#include "WlanSvcWrapper.hpp"
 
 #include "Iee80211Utils.hpp"
 #include "StringUtils.hpp"
@@ -158,8 +160,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
 {
     WlanSvcFake() = default;
 
-    WlanSvcFake(std::vector<GUID> interfaces, std::vector<Network> visibleNetworks = {})
-        : m_interfaces{}
+    WlanSvcFake(const std::vector<GUID>& interfaces, const std::vector<Network>& visibleNetworks = {})
     {
         for (const auto& guid : interfaces)
         {
@@ -167,7 +168,12 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
         }
     }
 
-    ~WlanSvcFake()
+    WlanSvcFake(const WlanSvcFake&) = delete;
+    WlanSvcFake(WlanSvcFake&&) = delete;
+    WlanSvcFake& operator=(const WlanSvcFake&) = delete;
+    WlanSvcFake& operator=(WlanSvcFake&&) = delete;
+
+    ~WlanSvcFake() override
     {
         WaitForNotifComplete();
     }
@@ -274,7 +280,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
 
     void RemoveInterface(const GUID& interfaceGuid)
     {
-        auto it = m_interfaces.find(interfaceGuid);
+        const auto it = m_interfaces.find(interfaceGuid);
         if (it != m_interfaces.end())
         {
             m_interfaces.erase(it);
@@ -288,7 +294,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
     void ConnectHost(const GUID& interfaceGuid, const ProxyWifi::Ssid& ssid)
     {
         const auto& networks = m_interfaces.at(interfaceGuid).m_visibleNetworks;
-        auto network = std::find_if(networks.begin(), networks.end(), [&](const auto& e) { return ssid == e.bss.ssid; });
+        const auto network = std::find_if(networks.begin(), networks.end(), [&](const auto& e) { return ssid == e.bss.ssid; });
 
         if (network != networks.end())
         {
@@ -300,7 +306,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
         }
 
         // Send a notification to annonce the connection completion
-        auto notifCallback = m_notifCallbacks.find(interfaceGuid);
+        const auto notifCallback = m_notifCallbacks.find(interfaceGuid);
         if (notifCallback != m_notifCallbacks.end())
         {
             auto r = m_interfaces.at(interfaceGuid).m_connectedBss ? WLAN_REASON_CODE_SUCCESS : WLAN_REASON_CODE_UNKNOWN;
@@ -368,9 +374,9 @@ private:
 
         m_notifThread = std::thread([this, intfGuid, notifBuilder = std::move(notifBuilder)] {
             auto lock = m_notifLock.lock_shared();
-            auto callback = m_notifCallbacks.find(intfGuid);
+            const auto callback = m_notifCallbacks.find(intfGuid);
             // Null guid subscription get all the notifications
-            auto allIntfCallback = m_notifCallbacks.find(GUID{});
+            const auto allIntfCallback = m_notifCallbacks.find(GUID{});
             notifBuilder([&](const auto& n) {
                 if (callback != m_notifCallbacks.end())
                 {
@@ -390,7 +396,7 @@ private:
         std::vector<Network> m_visibleNetworks;
         std::optional<Network> m_connectedBss;
     };
-    std::unordered_map<GUID, WlanInterface> m_interfaces = {};
+    std::unordered_map<GUID, WlanInterface> m_interfaces;
 
     wil::srwlock m_notifLock;
     std::unordered_map<GUID, std::function<void(const WLAN_NOTIFICATION_DATA&)>> m_notifCallbacks;

@@ -6,9 +6,8 @@
 #include <rpc.h>
 #include <guiddef.h>
 
-namespace std {
 template <>
-struct hash<GUID>
+struct std::hash<GUID>
 {
     std::size_t operator()(const GUID& guid) const noexcept
     {
@@ -16,7 +15,6 @@ struct hash<GUID>
         return ::UuidHash(&const_cast<GUID&>(guid), &status);
     }
 };
-} // namespace std
 
 inline bool operator<(const GUID& lhs, const GUID& rhs)
 {

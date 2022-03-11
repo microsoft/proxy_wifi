@@ -5,7 +5,7 @@
 
 #include "WlanInterface.hpp"
 
-#include <windows.h>
+#include <Windows.h>
 
 #include <future>
 #include <optional>
@@ -30,7 +30,7 @@ public:
     std::future<std::vector<ScannedBss>> Scan(std::optional<const Ssid>& ssid) override;
 
 private:
-    inline std::vector<WifiNetworkInfo> GetBssFromClient()
+    inline std::vector<WifiNetworkInfo> GetBssFromClient() const
     {
         if (m_getClientBssCallback)
         {

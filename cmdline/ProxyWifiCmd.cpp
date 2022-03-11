@@ -5,10 +5,7 @@
 #include "ProxyWifi/ProxyWifiService.hpp"
 
 #include <rpc.h>
-#include <winsock2.h>
-
-#include <stdio.h>
-#include <stdlib.h>
+#include <WinSock2.h>
 
 #include <charconv>
 #include <optional>
@@ -71,7 +68,7 @@ std::optional<ProxyWifiConfig> CreateProxyConfigFromArguments(int argc, const ch
     auto i = 1;
     while (i < argc)
     {
-        std::string_view option(argv[i]);
+        const std::string_view option(argv[i]);
         if (option == "-h")
         {
             print_help();
@@ -80,7 +77,7 @@ std::optional<ProxyWifiConfig> CreateProxyConfigFromArguments(int argc, const ch
         else if (option == "-p")
         {
             std::string_view value(argv[++i]);
-            auto res = std::from_chars(value.data(), value.data() + value.size(), manager.RequestResponsePort);
+            const auto res = std::from_chars(value.data(), value.data() + value.size(), manager.RequestResponsePort);
             if (res.ec == std::errc::invalid_argument)
             {
                 throw std::invalid_argument("Invalid port number");
@@ -89,7 +86,7 @@ std::optional<ProxyWifiConfig> CreateProxyConfigFromArguments(int argc, const ch
         else if (option == "-n")
         {
             std::string_view value(argv[++i]);
-            auto res = std::from_chars(value.data(), value.data() + value.size(), manager.NotificationPort);
+            const auto res = std::from_chars(value.data(), value.data() + value.size(), manager.NotificationPort);
             if (res.ec == std::errc::invalid_argument)
             {
                 throw std::invalid_argument("Invalid port number");
@@ -167,12 +164,12 @@ std::unique_ptr<ProxyWifiService> BuildProxyWifiService(const ProxyWifiConfig& s
     {
     case TransportType::HyperVSocket:
     {
-        ProxyWifiHyperVSettings proxySettings{settings.VmId, settings.RequestResponsePort, settings.NotificationPort, settings.Mode};
+        const ProxyWifiHyperVSettings proxySettings{settings.VmId, settings.RequestResponsePort, settings.NotificationPort, settings.Mode};
         return BuildProxyWifiService(proxySettings, {});
     }
     case TransportType::TcpSocket:
     {
-        ProxyWifiTcpSettings proxySettings{settings.ListenIp.value(), settings.RequestResponsePort, settings.NotificationPort, settings.Mode};
+        const ProxyWifiTcpSettings proxySettings{settings.ListenIp.value(), settings.RequestResponsePort, settings.NotificationPort, settings.Mode};
         return BuildProxyWifiService(proxySettings, {});
     }
     default:
@@ -216,12 +213,12 @@ try
     {
         std::cerr << "Invalid parameter: " << e.what() << std::endl;
         print_help();
-        exit(-1);
+        return -1;
     }
 
     if (!proxyConfig)
     {
-        exit(0);
+        return 0;
     }
 
     if (proxyConfig->UseTracelogging)
@@ -229,7 +226,7 @@ try
         Log::AddLogger(std::make_unique<Log::TraceLoggingLogger>());
     }
 
-    auto proxyService = BuildProxyWifiService(*proxyConfig);
+    const auto proxyService = BuildProxyWifiService(*proxyConfig);
     proxyService->Start();
 
     // Sleep until the program is interrupted with Ctrl-C
@@ -246,12 +243,12 @@ catch (const wil::ResultException& ex)
     }
     std::wcerr << std::endl;
 
-    std::exit(-1);
+    return -1;
 }
 catch (const std::exception& ex)
 {
     std::cerr << "Caught unhandled exception: " << ex.what() << std::endl;
-    std::exit(-1);
+    return -1;
 }
 catch (...)
 {

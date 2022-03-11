@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include <wil/result.h>
+#include <wil/result_macros.h>
 
 #include "ProxyWifi/Logs.hpp"
 #include "OperationHandler.hpp"

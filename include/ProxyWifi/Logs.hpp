@@ -20,7 +20,7 @@ class Logger
 {
 public:
     virtual void Log(Level level, const wchar_t* message) noexcept = 0;
-    virtual ~Logger(){};
+    virtual ~Logger() = default;
 };
 
 /// @brief Logger printing to the standard console output
@@ -46,9 +46,9 @@ namespace Details {
     {
     public:
         LogManager(const LogManager&) = delete;
-        LogManager(const LogManager&&) = delete;
+        LogManager(LogManager&&) = delete;
         LogManager& operator=(const LogManager&) = delete;
-        LogManager& operator=(const LogManager&&) = delete;
+        LogManager& operator=(LogManager&&) = delete;
 
         static LogManager& Get() noexcept
         {

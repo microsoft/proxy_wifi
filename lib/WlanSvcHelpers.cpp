@@ -61,7 +61,7 @@ static constexpr std::array MsmNotificationCodeStrings = {
     /* wlan_notification_msm_link_degraded                 */ "linkDegraded",
     /* wlan_notification_msm_link_improved                 */ "linkImproved"};
 
-inline const std::string AcmNotificationCodeToString(const WLAN_NOTIFICATION_ACM& acm)
+inline std::string AcmNotificationCodeToString(const WLAN_NOTIFICATION_ACM& acm)
 {
     if (acm <= wlan_notification_acm_start || acm >= wlan_notification_acm_end)
         THROW_WIN32_MSG(ERROR_INVALID_PARAMETER, "invalid WLAN_NOTIFICATION_ACM value (%d)", acm);
@@ -69,7 +69,7 @@ inline const std::string AcmNotificationCodeToString(const WLAN_NOTIFICATION_ACM
     return AcmNotificationCodeStrings[acm - 1];
 }
 
-inline const std::string MsmNotificationCodeToString(const WLAN_NOTIFICATION_MSM& msm)
+inline std::string MsmNotificationCodeToString(const WLAN_NOTIFICATION_MSM& msm)
 {
     if (msm <= wlan_notification_msm_start || msm >= wlan_notification_msm_end)
         THROW_WIN32_MSG(ERROR_INVALID_PARAMETER, "invalid WLAN_NOTIFICATION_MSM value (%d)", msm);
@@ -247,7 +247,7 @@ std::wstring ProfileNameFromSSID(const Ssid& ssid)
     constexpr auto c_defaultProfileName = L"ProxyWifi Network";
 
     std::array<wchar_t, WLAN_MAX_NAME_LENGTH> profileName{WLAN_MAX_NAME_LENGTH, L'\0'};
-    auto retValue = MultiByteToWideChar(
+    const auto retValue = MultiByteToWideChar(
         CP_UTF8,
         MB_ERR_INVALID_CHARS,
         reinterpret_cast<const char*>(ssid.value().data()),
@@ -375,7 +375,7 @@ DOT11_AUTH_CIPHER_PAIR DetermineAuthCipherPair(const WlanSecurity& secInfo)
 {
     const auto auth = DetermineAuth(secInfo.auth, secInfo.wpaVersion, secInfo.akmSuites);
 
-    auto candidateCiphers = ConvertCipherSuites(secInfo.cipherSuites);
+    const auto candidateCiphers = ConvertCipherSuites(secInfo.cipherSuites);
     for (auto cipher: candidateCiphers)
     {
         auto pair = std::make_pair(auth, cipher);
