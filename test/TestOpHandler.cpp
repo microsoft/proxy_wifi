@@ -38,7 +38,7 @@ ConnectRequest MakeWpa2PskConnectRequest(const Ssid& ssid)
     connectRequest->pairwise_cipher_suites[0] = WI_EnumValue(CipherSuite::Ccmp);
     connectRequest->group_cipher_suite = WI_EnumValue(CipherSuite::Ccmp);
     connectRequest->key_len = wil::safe_cast<uint8_t>(key.size());
-    std::copy(key.begin(), key.end(), connectRequest->key);
+    std::ranges::copy(key, connectRequest->key);
 
     return ConnectRequest{std::move(body)};
 }
@@ -198,7 +198,7 @@ TEST_CASE("Handle scan on multiple interfaces", "[wlansvcOpHandler][multiInterfa
 
         Ssid ssid{"ethernet"};
         DOT11_MAC_ADDRESS bssid{};
-        std::copy(Mock::c_wpa2PskNetwork.bss.bssid.cbegin(), Mock::c_wpa2PskNetwork.bss.bssid.cend(), bssid);
+        std::ranges::copy(Mock::c_wpa2PskNetwork.bss.bssid, bssid);
 
         auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc, [&] {
             return std::vector<WifiNetworkInfo>{{static_cast<DOT11_SSID>(ssid), bssid}};

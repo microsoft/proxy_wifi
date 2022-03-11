@@ -101,7 +101,7 @@ std::optional<ConnectedNetwork> TestWlanInterface::IsConnectedTo(const Ssid& req
 
 std::future<std::pair<WlanStatus, ConnectedNetwork>> TestWlanInterface::Connect(const Ssid& requestedSsid, const Bssid&, const WlanSecurity&)
 {
-    const auto network = std::find_if(m_networks.cbegin(), m_networks.cend(), [&](const auto& n) { return n.ssid == requestedSsid; });
+    const auto network = std::ranges::find_if(m_networks, [&](const auto& n) { return n.ssid == requestedSsid; });
 
     std::promise<std::pair<WlanStatus, ConnectedNetwork>> promise;
     if (network == m_networks.cend())

@@ -215,7 +215,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
             WLAN_CONNECTION_ATTRIBUTES r{};
             r.isState = connectedBss ? wlan_interface_state_connected : wlan_interface_state_disconnected;
             r.wlanAssociationAttributes.dot11Ssid = connectedBss->bss.ssid;
-            std::copy(connectedBss->bss.bssid.cbegin(), connectedBss->bss.bssid.cend(), r.wlanAssociationAttributes.dot11Bssid);
+            std::ranges::copy(connectedBss->bss.bssid, r.wlanAssociationAttributes.dot11Bssid);
             r.wlanSecurityAttributes.dot11AuthAlgorithm = connectedBss->network.dot11DefaultAuthAlgorithm;
             r.wlanSecurityAttributes.dot11CipherAlgorithm = connectedBss->network.dot11DefaultCipherAlgorithm;
             return r;
@@ -255,7 +255,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
         const auto& networks = m_interfaces.at(interfaceGuid).m_visibleNetworks;
 
         std::vector<ProxyWifi::ScannedBss> r;
-        std::transform(networks.cbegin(), networks.cend(), std::back_inserter(r), [](const auto& n) { return n.bss; });
+        std::ranges::transform(networks, std::back_inserter(r), [](const auto& n) { return n.bss; });
         return r;
     }
 
@@ -264,7 +264,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
         const auto& networks = m_interfaces.at(interfaceGuid).m_visibleNetworks;
 
         std::vector<WLAN_AVAILABLE_NETWORK> r;
-        std::transform(networks.cbegin(), networks.cend(), std::back_inserter(r), [](const auto& n) { return n.network; });
+        std::ranges::transform(networks, std::back_inserter(r), [](const auto& n) { return n.network; });
         return r;
     }
 
@@ -294,7 +294,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
     void ConnectHost(const GUID& interfaceGuid, const ProxyWifi::Ssid& ssid)
     {
         const auto& networks = m_interfaces.at(interfaceGuid).m_visibleNetworks;
-        const auto network = std::find_if(networks.begin(), networks.end(), [&](const auto& e) { return ssid == e.bss.ssid; });
+        const auto network = std::ranges::find_if(networks, [&](const auto& e) { return ssid == e.bss.ssid; });
 
         if (network != networks.end())
         {

@@ -27,7 +27,7 @@ std::optional<ConnectedNetwork> ClientWlanInterface::IsConnectedTo(const Ssid& r
 {
     const auto clientNetworks = GetBssFromClient();
     const auto network =
-        std::find_if(clientNetworks.cbegin(), clientNetworks.cend(), [&](const auto& n) { return n.ssid == requestedSsid; });
+        std::ranges::find_if(clientNetworks, [&](const auto& n) { return n.ssid == requestedSsid; });
 
     if (network == clientNetworks.cend())
     {
@@ -46,7 +46,7 @@ std::future<std::pair<WlanStatus, ConnectedNetwork>> ClientWlanInterface::Connec
 {
     const auto clientNetworks = GetBssFromClient();
     const auto network =
-        std::find_if(clientNetworks.cbegin(), clientNetworks.cend(), [&](const auto& n) { return n.ssid == requestedSsid; });
+        std::ranges::find_if(clientNetworks, [&](const auto& n) { return n.ssid == requestedSsid; });
 
     std::promise<std::pair<WlanStatus, ConnectedNetwork>> promise;
     if (network == clientNetworks.cend())

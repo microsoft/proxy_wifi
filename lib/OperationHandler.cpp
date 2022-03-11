@@ -215,8 +215,7 @@ void OperationHandler::AddInterface(const std::function<std::unique_ptr<IWlanInt
     m_serializedRunner.Run([this, wlanInterfaceBuilder] {
         auto wlanInterface = wlanInterfaceBuilder();
         const auto& newGuid = wlanInterface->GetGuid();
-        auto alreadyPresent =
-            std::any_of(m_wlanInterfaces.begin(), m_wlanInterfaces.end(), [&](const auto& i) { return i->GetGuid() == newGuid; });
+        auto alreadyPresent = std::ranges::any_of(m_wlanInterfaces, [&](const auto& i) { return i->GetGuid() == newGuid; });
 
         if (alreadyPresent)
         {
@@ -392,9 +391,8 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
         return DisconnectResponse{};
     };
 
-    const auto interfaceToDisconnect = std::find_if(m_wlanInterfaces.begin(), m_wlanInterfaces.end(), [&](const auto& i) {
-        return m_guestConnection->interfaceGuid == i->GetGuid();
-    });
+    const auto interfaceToDisconnect =
+        std::ranges::find_if(m_wlanInterfaces, [&](const auto& i) { return m_guestConnection->interfaceGuid == i->GetGuid(); });
 
     if (interfaceToDisconnect == m_wlanInterfaces.end())
     {

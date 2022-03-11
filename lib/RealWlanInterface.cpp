@@ -17,7 +17,7 @@ namespace {
 bool IsBssSupported(const ScannedBss& bss, const std::vector<WLAN_AVAILABLE_NETWORK>& networks)
 {
     const auto matchingNetwork =
-        std::find_if(networks.cbegin(), networks.cend(), [&](const auto& n) { return bss.ssid == n.dot11Ssid; });
+        std::ranges::find_if(networks, [&](const auto& n) { return bss.ssid == n.dot11Ssid; });
 
     if (matchingNetwork == networks.cend())
     {
