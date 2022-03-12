@@ -89,7 +89,7 @@ ProxyWifiHyperVSettings::ProxyWifiHyperVSettings(const GUID& guestVmId, unsigned
     : 
       RequestResponsePort(requestResponsePort),
       NotificationPort(notificationPort),
-        GuestVmId(guestVmId),
+      GuestVmId(guestVmId),
       ProxyMode(mode)
 {
 }
