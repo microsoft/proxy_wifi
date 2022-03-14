@@ -3,6 +3,9 @@
 
 #include "catch2/catch.hpp"
 #include "StringUtils.hpp"
+#include "DynamicFunction.hpp"
+
+#include <sysinfoapi.h>
 
 // Tests for StringUtils.hpp
 
@@ -58,4 +61,25 @@ TEST_CASE("ListEnumToHexString format correctly", "[stringUtils]")
 
     CHECK(ListEnumToHexString(gsl::span{std::vector{Pizza::Cheese}}, L"-", 4) == std::wstring(L"0000"));
     CHECK(ListEnumToHexString(gsl::span{std::vector{Pizza::Peperoni, Pizza::Cheese}}, L"-", 4) == std::wstring(L"0001-0000"));
+}
+
+TEST_CASE("Dynamic function basic behavior works", "[dynamicFunction]")
+{
+    SECTION("Loading an valid function from a valid module works")
+    {
+        CHECK_NOTHROW([]() {
+            DynamicFunction<decltype(::GetTickCount)> dynFun{L"kernel32.dll", "GetTickCount"};
+            dynFun();
+        }());
+    }
+
+    SECTION("Loading from a non-existing module throws")
+    {
+        CHECK_THROWS([]() { DynamicFunction<decltype(::GetTickCount)> dynFun{L"dummy.dll", "GetNativeSystemInfo"}; }());
+    }
+
+    SECTION("Loading a non-existing function throws")
+    {
+        CHECK_THROWS([]() { DynamicFunction<decltype(::GetTickCount)> dynFun{L"kernel32.dll", "dummy"}; }());
+    }
 }
