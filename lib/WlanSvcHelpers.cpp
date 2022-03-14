@@ -61,7 +61,7 @@ static constexpr std::array MsmNotificationCodeStrings = {
     /* wlan_notification_msm_link_degraded                 */ "linkDegraded",
     /* wlan_notification_msm_link_improved                 */ "linkImproved"};
 
-inline const std::string AcmNotificationCodeToString(const WLAN_NOTIFICATION_ACM& acm)
+inline std::string AcmNotificationCodeToString(const WLAN_NOTIFICATION_ACM& acm)
 {
     if (acm <= wlan_notification_acm_start || acm >= wlan_notification_acm_end)
         THROW_WIN32_MSG(ERROR_INVALID_PARAMETER, "invalid WLAN_NOTIFICATION_ACM value (%d)", acm);
@@ -69,7 +69,7 @@ inline const std::string AcmNotificationCodeToString(const WLAN_NOTIFICATION_ACM
     return AcmNotificationCodeStrings[acm - 1];
 }
 
-inline const std::string MsmNotificationCodeToString(const WLAN_NOTIFICATION_MSM& msm)
+inline std::string MsmNotificationCodeToString(const WLAN_NOTIFICATION_MSM& msm)
 {
     if (msm <= wlan_notification_msm_start || msm >= wlan_notification_msm_end)
         THROW_WIN32_MSG(ERROR_INVALID_PARAMETER, "invalid WLAN_NOTIFICATION_MSM value (%d)", msm);
@@ -247,7 +247,7 @@ std::wstring ProfileNameFromSSID(const Ssid& ssid)
     constexpr auto c_defaultProfileName = L"ProxyWifi Network";
 
     std::array<wchar_t, WLAN_MAX_NAME_LENGTH> profileName{WLAN_MAX_NAME_LENGTH, L'\0'};
-    auto retValue = MultiByteToWideChar(
+    const auto retValue = MultiByteToWideChar(
         CP_UTF8,
         MB_ERR_INVALID_CHARS,
         reinterpret_cast<const char*>(ssid.value().data()),
@@ -318,7 +318,7 @@ bool IsAuthCipherPairSupported(const std::pair<DOT11_AUTH_ALGORITHM, DOT11_CIPHE
         std::make_pair(DOT11_AUTH_ALGO_RSNA_PSK, DOT11_CIPHER_ALGO_CCMP),
         std::make_pair(DOT11_AUTH_ALGO_RSNA_PSK, DOT11_CIPHER_ALGO_GCMP)};
 
-    return std::find(supportedAuthCiphers.cbegin(), supportedAuthCiphers.cend(), authCipher) != supportedAuthCiphers.cend();
+    return std::ranges::find(supportedAuthCiphers, authCipher) != supportedAuthCiphers.cend();
 }
 
 namespace {
@@ -329,7 +329,7 @@ std::vector<DOT11_CIPHER_ALGORITHM> ConvertCipherSuites(gsl::span<const CipherSu
         return {DOT11_CIPHER_ALGO_NONE};
     }
     std::vector<DOT11_CIPHER_ALGORITHM> r;
-    std::transform(ciphers.begin(), ciphers.end(), std::back_inserter(r), CipherSuiteToWindowsEnum);
+    std::ranges::transform(ciphers, std::back_inserter(r), CipherSuiteToWindowsEnum);
     return r;
 }
 
@@ -344,7 +344,7 @@ constexpr DOT11_AUTH_ALGORITHM DetermineAuth(AuthAlgo auth, uint8_t wpaVersion, 
         else if (wpaVersion == 2)
         {
             constexpr std::array wpa2akms{AkmSuite::Psk, AkmSuite::PskSha256, AkmSuite::PskSha384, AkmSuite::FtPsk, AkmSuite::FtPskSha384};
-            if (std::find_first_of(akms.begin(), akms.end(), wpa2akms.begin(), wpa2akms.end()) == akms.end())
+            if (std::ranges::find_first_of(akms, wpa2akms) == akms.end())
             {
                 throw std::invalid_argument("Unsupported authentication algorithm: Open/Wpa2, but no PSK AKM");
             }
@@ -357,7 +357,7 @@ constexpr DOT11_AUTH_ALGORITHM DetermineAuth(AuthAlgo auth, uint8_t wpaVersion, 
     }
     else if (auth == AuthAlgo::Sae)
     {
-        if (std::find(akms.begin(), akms.end(), AkmSuite::Sae) == akms.end())
+        if (std::ranges::find(akms, AkmSuite::Sae) == akms.end())
         {
             throw std::invalid_argument("Unsupported SAE authentication algorithm: No SAE AKM");
         }
@@ -375,7 +375,7 @@ DOT11_AUTH_CIPHER_PAIR DetermineAuthCipherPair(const WlanSecurity& secInfo)
 {
     const auto auth = DetermineAuth(secInfo.auth, secInfo.wpaVersion, secInfo.akmSuites);
 
-    auto candidateCiphers = ConvertCipherSuites(secInfo.cipherSuites);
+    const auto candidateCiphers = ConvertCipherSuites(secInfo.cipherSuites);
     for (auto cipher: candidateCiphers)
     {
         auto pair = std::make_pair(auth, cipher);

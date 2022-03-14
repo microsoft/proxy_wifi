@@ -18,7 +18,7 @@ struct FakeBss
     int32_t rssi = -50;
     uint32_t channelCenterFreq = 2432000; // 2.4GHz by default
     uint16_t beaconInterval = 0;
-    Bssid bssid;
+    Bssid bssid{};
     Ssid ssid;
     std::vector<AkmSuite> akmSuites;
     std::vector<CipherSuite> cipherSuites;
@@ -39,7 +39,7 @@ struct ScannedBss
     explicit ScannedBss(const FakeBss& fakeBss);
     ScannedBss(Bssid bssid, Ssid ssid, uint16_t capabilities, int8_t rssi, uint32_t channelCenterFreq, uint16_t beaconInterval, std::vector<uint8_t> ies);
 
-    Bssid bssid;
+    Bssid bssid{};
     Ssid ssid;
     uint16_t capabilities = 0;
     int32_t rssi = -50;
@@ -51,8 +51,8 @@ struct ScannedBss
 struct ConnectedNetwork
 {
     Ssid ssid;
-    Bssid bssid;
-    DOT11_AUTH_ALGORITHM auth;
+    Bssid bssid{};
+    DOT11_AUTH_ALGORITHM auth = DOT11_AUTH_ALGO_80211_OPEN;
 };
 
 } // namespace ProxyWifi

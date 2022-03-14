@@ -24,7 +24,7 @@ TEST_CASE("HexStringToByteBuffer parse correctly", "[stringUtils]")
 
 TEST_CASE("GuidToString format correctly", "[stringUtils]")
 {
-    GUID guid{0xfef2f808, 0xf267, 0x4728, {0xa0, 0xc5, 0x0a, 0x62, 0x40, 0xd0, 0x1b, 0x33}};
+    constexpr GUID guid{0xfef2f808, 0xf267, 0x4728, {0xa0, 0xc5, 0x0a, 0x62, 0x40, 0xd0, 0x1b, 0x33}};
     CHECK(GuidToString(guid) == std::wstring(L"{FEF2F808-F267-4728-A0C5-0A6240D01B33}"));
 }
 

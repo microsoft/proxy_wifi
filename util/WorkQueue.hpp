@@ -4,8 +4,8 @@
 
 #include <Windows.h>
 #include <wil/resource.h>
-#include <wil/result.h>
 
+#include <any>
 #include <deque>
 #include <optional>
 
@@ -15,9 +15,9 @@ template<class WorkItem, int minThread, int maxThread, std::enable_if_t<std::is_
 class WorkQueue
 {
 public:
-    WorkQueue() : m_threadPool(minThread, maxThread)
+    WorkQueue()
+    : m_threadPool(minThread, maxThread), m_threadPoolWork{m_threadPool.CreateWork(WorkCallback, this)}
     {
-        m_threadPoolWork = m_threadPool.CreateWork(WorkCallback, this);
     }
 
     ~WorkQueue() noexcept
@@ -81,7 +81,7 @@ private:
             wil::unique_threadpool_work work(::CreateThreadpoolWork(callback, context, &m_threadpoolEnv));
             THROW_LAST_ERROR_IF_NULL(work.get());
             return work;
-        };
+        }
     };
 
     static void CALLBACK WorkCallback(_Inout_ PTP_CALLBACK_INSTANCE, _In_ void* context, _Inout_ PTP_WORK) noexcept

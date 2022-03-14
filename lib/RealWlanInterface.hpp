@@ -3,17 +3,14 @@
 
 #pragma once
 
-#include <windows.h>
+#include <Windows.h>
 #include <wlanapi.h>
-
-#include <wil/resource.h>
 
 #include <future>
 #include <optional>
 
 #include "Networks.hpp"
 #include "Iee80211Utils.hpp"
-#include "ProxyWifi/ProxyWifiService.hpp"
 #include "WlanInterface.hpp"
 #include "WlanSvcWrapper.hpp"
 
@@ -24,8 +21,13 @@ class RealWlanInterface: public IWlanInterface
 {
 public:
     // Add notification handler parameter
-    RealWlanInterface(const std::shared_ptr<Wlansvc::WlanApiWrapper>& wlansvc, const GUID& interfaceGuid);
-    ~RealWlanInterface();
+    RealWlanInterface(std::shared_ptr<Wlansvc::WlanApiWrapper> wlansvc, const GUID& interfaceGuid);
+    ~RealWlanInterface() override;
+
+    RealWlanInterface(const RealWlanInterface&) = delete;
+    RealWlanInterface(RealWlanInterface&&) = delete;
+    RealWlanInterface& operator=(const RealWlanInterface&) = delete;
+    RealWlanInterface& operator=(RealWlanInterface&&) = delete;
 
     void SetNotificationHandler(INotificationHandler* handler) override;
 
@@ -42,7 +44,7 @@ private:
     void OnConnectComplete(const WLAN_CONNECTION_NOTIFICATION_DATA& data);
     void OnDisconnected(const WLAN_CONNECTION_NOTIFICATION_DATA& data);
     void OnScanComplete();
-    void OnSignalQualityChange(unsigned long signal);
+    void OnSignalQualityChange(unsigned long signal) const;
 
     const std::shared_ptr<Wlansvc::WlanApiWrapper> m_wlansvc;
     const GUID m_interfaceGuid;
@@ -56,7 +58,7 @@ private:
     std::vector<ScannedBss> m_cachedScannedBss;
     std::vector<WLAN_AVAILABLE_NETWORK> m_cachedScannedNetworks;
 
-    INotificationHandler* m_notifCallback;
+    INotificationHandler* m_notifCallback{};
 
     inline void NotifyHostConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {

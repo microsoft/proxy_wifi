@@ -7,7 +7,7 @@
 #include <utility>
 #include <string>
 
-#include <windows.h>
+#include <Windows.h>
 #include <wlanapi.h>
 #include <wlantypes.h>
 

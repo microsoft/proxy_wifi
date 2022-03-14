@@ -5,7 +5,7 @@
 
 #include "WlanInterface.hpp"
 
-#include <windows.h>
+#include <Windows.h>
 
 #include <future>
 #include <optional>
@@ -38,7 +38,7 @@ private:
     std::mutex m_connectedNetworkMutex;
     std::optional<size_t> m_connectedNetwork;
 
-    INotificationHandler* m_notifCallback;
+    INotificationHandler* m_notifCallback{};
 
     inline void NotifyConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {

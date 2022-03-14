@@ -21,7 +21,7 @@ Transport::Transport(std::shared_ptr<OperationHandler>& operationHandler, unsign
                 [this](auto&& n) {
                     using T = std::decay_t<decltype(n)>;
                     Log::Info(L"Adding notification to queue: %ws", n.Describe().c_str());
-                    QueueNotification(T::ToMessage(std::move(n)));
+                    QueueNotification(T::ToMessage(std::forward<T>(n)));
                 },
                 notif);
         }
@@ -65,7 +65,7 @@ void Transport::AcceptConnections()
             Log::Debug(L"Got connection");
 
             // Handle the connection synchronously: the guest requests are serialized
-            auto connection = ConnectionSocket{std::move(acceptContext.releaseSocket()), m_operationHandler};
+            auto connection = ConnectionSocket{acceptContext.releaseSocket(), m_operationHandler};
             connection.Run();
         }
         else if (waitResults == WSA_WAIT_FAILED)
@@ -107,7 +107,7 @@ void Transport::QueueNotification(Message&& msg)
     m_notifQueue.Submit([this, n = std::move(msg)]() noexcept {
         try
         {
-            SendNotification(std::move(n));
+            SendNotification(n);
         }
         CATCH_LOG_MSG("Failed to send a notification")
     });
@@ -151,7 +151,7 @@ void Transport::Shutdown()
 }
 
 HyperVTransport::HyperVTransport(
-    std::shared_ptr<OperationHandler>& operationHandler, unsigned short requestResponsePort, unsigned short notificationPort, const GUID guestVmId)
+    std::shared_ptr<OperationHandler>& operationHandler, unsigned short requestResponsePort, unsigned short notificationPort, const GUID& guestVmId)
     : Transport(operationHandler, requestResponsePort, notificationPort), m_guestVmId(guestVmId)
 {
 }

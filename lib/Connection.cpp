@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
-#include <stdio.h>
 
 #include <wil/result_macros.h>
 
@@ -10,8 +9,8 @@
 
 namespace ProxyWifi {
 
-Connection::Connection(std::shared_ptr<OperationHandler>& operations)
-    : m_operations(operations)
+Connection::Connection(std::shared_ptr<OperationHandler> operations)
+    : m_operations(std::move(operations))
 {
 }
 
@@ -51,7 +50,7 @@ void Connection::Run()
         {
         case WIFI_OP_SCAN_REQUEST:
         {
-            auto command = ScanRequest{std::move(request->body)};
+            const auto command = ScanRequest{std::move(request->body)};
             Log::Info(L"Received: %ws", command.Describe().c_str());
 
             auto response = m_operations->HandleScanRequest(command);
@@ -62,7 +61,7 @@ void Connection::Run()
         }
         case WIFI_OP_CONNECT_REQUEST:
         {
-            auto command = ConnectRequest{std::move(request->body)};
+            const auto command = ConnectRequest{std::move(request->body)};
 
             Log::Info(L"Received: %ws", command.Describe().c_str());
             auto response = m_operations->HandleConnectRequest(command);
@@ -74,7 +73,7 @@ void Connection::Run()
         }
         case WIFI_OP_DISCONNECT_REQUEST:
         {
-            auto command = DisconnectRequest{std::move(request->body)};
+            const auto command = DisconnectRequest{std::move(request->body)};
             Log::Info(L"Received: %ws", command.Describe().c_str());
 
             auto response = m_operations->HandleDisconnectRequest(command);
@@ -85,7 +84,6 @@ void Connection::Run()
         }
         default:
             THROW_WIN32_MSG(ERROR_INVALID_MESSAGE, "Ignoring unknown command ID: %d", request->hdr.operation);
-            break;
         }
 
         Log::Trace(
@@ -100,7 +98,7 @@ void Connection::Run()
     }
 }
 
-ConnectionSocket::ConnectionSocket(wil::unique_socket socket, std::shared_ptr<OperationHandler>& operations)
+ConnectionSocket::ConnectionSocket(wil::unique_socket socket, const std::shared_ptr<OperationHandler>& operations)
     : Connection(operations), m_socket(std::move(socket))
 {
 }

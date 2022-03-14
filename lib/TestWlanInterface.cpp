@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#pragma once
-
 #include "TestWlanInterface.hpp"
 
 #include "LogsHelpers.hpp"
@@ -15,7 +13,7 @@ namespace ProxyWifi {
 
 namespace {
 
-DOT11_AUTH_ALGORITHM GetAuthAlgo(FakeBss bss)
+DOT11_AUTH_ALGORITHM GetAuthAlgo(const FakeBss& bss)
 {
     // The test interface support only open and wpa2psk networks
     return bss.akmSuites.empty() ? DOT11_AUTH_ALGO_80211_OPEN : DOT11_AUTH_ALGO_RSNA_PSK;
@@ -103,7 +101,7 @@ std::optional<ConnectedNetwork> TestWlanInterface::IsConnectedTo(const Ssid& req
 
 std::future<std::pair<WlanStatus, ConnectedNetwork>> TestWlanInterface::Connect(const Ssid& requestedSsid, const Bssid&, const WlanSecurity&)
 {
-    auto network = std::find_if(m_networks.cbegin(), m_networks.cend(), [&](const auto& n) { return n.ssid == requestedSsid; });
+    const auto network = std::ranges::find_if(m_networks, [&](const auto& n) { return n.ssid == requestedSsid; });
 
     std::promise<std::pair<WlanStatus, ConnectedNetwork>> promise;
     if (network == m_networks.cend())
@@ -180,7 +178,7 @@ void TestWlanInterface::NotificationSender()
     for (;;)
     {
         std::cout << ">>> Enter a value to send a notification: ";
-        for (auto i = 0; i < notifications.size(); ++i)
+        for (auto i = 0u; i < notifications.size(); ++i)
         {
             std::cout << "<" << i << " -> " << notifications[i].second << "> ";
         }

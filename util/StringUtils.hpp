@@ -9,7 +9,7 @@
 #include <gsl/span>
 #include <sstream>
 
-#include <windows.h>
+#include <Windows.h>
 #include <wil/win32_helpers.h>
 
 /// @brief Allow to convert a buffer of bytes as a string of hexadecimal two-digit values
@@ -40,7 +40,7 @@ inline static std::vector<uint8_t> HexStringToByteBuffer(const std::wstring_view
     }
 
     std::vector<uint8_t> byteBuffer;
-    for (auto i = 0; i < s.size(); i += 2)
+    for (auto i = 0u; i < s.size(); i += 2)
     {
         std::wstring t{s.substr(i, 2)};
         byteBuffer.push_back(static_cast<uint8_t>(std::stoul(t, nullptr, 16)));
@@ -80,7 +80,7 @@ inline static std::wstring SsidToLogString(const gsl::span<const uint8_t> ssid)
 {
     std::wostringstream stream;
     stream << L"'" << std::wstring{ssid.begin(), ssid.end()} << L"' [";
-    for (auto b : ssid)
+    for (const auto b : ssid)
     {
         stream << std::isprint(b) ? b : '?';
     }

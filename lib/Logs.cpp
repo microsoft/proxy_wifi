@@ -10,7 +10,7 @@
 namespace ProxyWifi::Log {
 
 namespace {
-    static constexpr std::array levelNames = {"Error", "Info", "Trace", "Debug"};
+    constexpr std::array levelNames = {"Error", "Info", "Trace", "Debug"};
 
     constexpr const char* LevelToCStr(Level lvl) noexcept
     {

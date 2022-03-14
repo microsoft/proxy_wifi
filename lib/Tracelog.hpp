@@ -22,12 +22,12 @@ class TraceProvider : public wil::TraceLoggingProvider
         TraceProvider,
         "Microsoft.WslCore.ProxyWifi",
         // 872a70db-e765-45e5-9141-4b35732837b6
-        (0x872a70db, 0xe765, 0x45e5, 0x91, 0x41, 0x4b, 0x35, 0x73, 0x28, 0x37, 0xb6));
+        (0x872a70db, 0xe765, 0x45e5, 0x91, 0x41, 0x4b, 0x35, 0x73, 0x28, 0x37, 0xb6))
 
-    DEFINE_TRACELOGGING_EVENT_STRING(Debug, Log, TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE));
-    DEFINE_TRACELOGGING_EVENT_STRING(Trace, Log, TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE));
-    DEFINE_TRACELOGGING_EVENT_STRING(Info, Log, TraceLoggingLevel(WINEVENT_LEVEL_INFO));
-    DEFINE_TRACELOGGING_EVENT_STRING(Error, Log, TraceLoggingLevel(WINEVENT_LEVEL_ERROR));
+    DEFINE_TRACELOGGING_EVENT_STRING(Debug, Log, TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE))
+    DEFINE_TRACELOGGING_EVENT_STRING(Trace, Log, TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE))
+    DEFINE_TRACELOGGING_EVENT_STRING(Info, Log, TraceLoggingLevel(WINEVENT_LEVEL_INFO))
+    DEFINE_TRACELOGGING_EVENT_STRING(Error, Log, TraceLoggingLevel(WINEVENT_LEVEL_ERROR))
 };
 
 } // namespace ProxyWifi::Log

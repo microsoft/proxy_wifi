@@ -44,7 +44,7 @@ namespace {
 void OperationHandler::RegisterGuestNotificationCallback(GuestNotificationCallback notificationCallback)
 {
     auto gate = std::unique_lock{m_notificationLock};
-    m_notificationCallback = notificationCallback;
+    m_notificationCallback = std::move(notificationCallback);
 }
 
 void OperationHandler::ClearGuestNotificationCallback()
@@ -215,8 +215,7 @@ void OperationHandler::AddInterface(const std::function<std::unique_ptr<IWlanInt
     m_serializedRunner.Run([this, wlanInterfaceBuilder] {
         auto wlanInterface = wlanInterfaceBuilder();
         const auto& newGuid = wlanInterface->GetGuid();
-        auto alreadyPresent =
-            std::any_of(m_wlanInterfaces.begin(), m_wlanInterfaces.end(), [&](const auto& i) { return i->GetGuid() == newGuid; });
+        auto alreadyPresent = std::ranges::any_of(m_wlanInterfaces, [&](const auto& i) { return i->GetGuid() == newGuid; });
 
         if (alreadyPresent)
         {
@@ -253,7 +252,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
         return ConnectResponse{WlanStatus::UnspecifiedFailure, connectRequest->bssid, m_sessionId};
     }
 
-    for (auto& wlanIntf : m_wlanInterfaces)
+    for (const auto& wlanIntf : m_wlanInterfaces)
     {
         Log::Info(L"Checking whether interface %ws is already connected to the correct network", GuidToString(wlanIntf->GetGuid()).c_str());
         if (auto networkInfo = wlanIntf->IsConnectedTo(ssid); networkInfo.has_value())
@@ -297,7 +296,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
             [](auto cipher) { return static_cast<CipherSuite>(cipher); });
 
         // TODO guhetier: Move the inside of this loop in a subfunction?
-        for (auto& wlanIntf : m_wlanInterfaces)
+        for (const auto& wlanIntf : m_wlanInterfaces)
         {
             auto connectionResult = WlanStatus::UnspecifiedFailure;
             ConnectedNetwork networkInfo{};
@@ -311,7 +310,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
                 }
                 else
                 {
-                    auto r = connectFuture.get();
+                    const auto r = connectFuture.get();
                     std::tie(connectionResult, networkInfo) = r;
                 }
             }
@@ -377,7 +376,7 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
         m_guestConnection.reset();
 
         OnGuestDisconnectionCompletion(OperationType::HostMirroring, OperationStatus::Succeeded, guestConnectInfo->interfaceGuid, guestConnectInfo->ssid);
-        return DisconnectResponse();
+        return DisconnectResponse{};
     }
 
 
@@ -392,9 +391,8 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
         return DisconnectResponse{};
     };
 
-    auto interfaceToDisconnect = std::find_if(m_wlanInterfaces.begin(), m_wlanInterfaces.end(), [&](const auto& i) {
-        return m_guestConnection->interfaceGuid == i->GetGuid();
-    });
+    const auto interfaceToDisconnect =
+        std::ranges::find_if(m_wlanInterfaces, [&](const auto& i) { return m_guestConnection->interfaceGuid == i->GetGuid(); });
 
     if (interfaceToDisconnect == m_wlanInterfaces.end())
     {
@@ -407,7 +405,7 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
     Log::Info(L"Disconnecting interface %ws.", GuidToString((*interfaceToDisconnect)->GetGuid()).c_str());
     try
     {
-        auto disconnectFuture = (*interfaceToDisconnect)->Disconnect();
+        const auto disconnectFuture = (*interfaceToDisconnect)->Disconnect();
         if (disconnectFuture.wait_for(std::chrono::seconds(5)) != std::future_status::ready)
         {
             LOG_WIN32_MSG(
@@ -416,7 +414,7 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
                 GuidToString((*interfaceToDisconnect)->GetGuid()).c_str());
         }
     }
-    CATCH_LOG_MSG("WlanDisconnect failed on interface %ws", GuidToString((*interfaceToDisconnect)->GetGuid()).c_str());
+    CATCH_LOG_MSG("WlanDisconnect failed on interface %ws", GuidToString((*interfaceToDisconnect)->GetGuid()).c_str())
 
     return completeDisconnection();
 }
@@ -436,7 +434,7 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
 
     // Start all scan requests
     std::vector<std::future<std::vector<ScannedBss>>> futureScanResults;
-    for (auto& wlanIntf : m_wlanInterfaces)
+    for (const auto& wlanIntf : m_wlanInterfaces)
     {
         try
         {

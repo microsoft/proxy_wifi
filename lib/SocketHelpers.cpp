@@ -3,10 +3,8 @@
 
 #include "SocketHelpers.hpp"
 
-#include <mswsock.h>
+#include <MSWSock.h>
 
-#include <array>
-#include <cstdio>
 #include <memory>
 #include <gsl/span>
 
@@ -46,8 +44,7 @@ std::pair<wil::unique_socket, sockaddr_in> CreateTcpSocket(const IN_ADDR& listen
     }
 
     // Bind address to server socket.
-    sockaddr_in sockaddrIn;
-    memset(&sockaddrIn, 0, sizeof(sockaddrIn));
+    sockaddr_in sockaddrIn{};
     sockaddrIn.sin_family = AF_INET;
     sockaddrIn.sin_port = htons(port);
     sockaddrIn.sin_addr = listenIpAddr;
@@ -70,7 +67,7 @@ AcceptAsyncContext::~AcceptAsyncContext()
     }
 }
 
-AcceptAsyncContext AcceptAsyncContext::Accept(const wil::unique_socket& listenSocket, std::function<std::pair<wil::unique_socket, size_t>()> createSocket)
+AcceptAsyncContext AcceptAsyncContext::Accept(const wil::unique_socket& listenSocket, const std::function<std::pair<wil::unique_socket, size_t>()>& createSocket)
 {
     auto [acceptSocket, addrSize] = createSocket();
     if (!acceptSocket.is_valid())
@@ -101,7 +98,7 @@ AcceptAsyncContext AcceptAsyncContext::Accept(const wil::unique_socket& listenSo
     return AcceptAsyncContext(std::move(acceptSocket), std::move(acceptEvent), std::move(buffer), std::move(overlapped));
 }
 
-static bool ReceiveBytes(wil::unique_socket& socket, gsl::span<uint8_t> buffer)
+static bool ReceiveBytes(const wil::unique_socket& socket, gsl::span<uint8_t> buffer)
 {
     while (buffer.size_bytes() > 0)
     {
@@ -122,7 +119,7 @@ static bool ReceiveBytes(wil::unique_socket& socket, gsl::span<uint8_t> buffer)
     return true;
 }
 
-std::optional<Message> ReceiveProxyWifiMessage(wil::unique_socket& socket)
+std::optional<Message> ReceiveProxyWifiMessage(const wil::unique_socket& socket)
 {
     Message message;
     if (!ReceiveBytes(socket, {reinterpret_cast<uint8_t*>(&message.hdr), sizeof(message.hdr)}))

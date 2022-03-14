@@ -4,10 +4,9 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <vector>
 
-#include <windows.h>
+#include <Windows.h>
 #include <windot11.h>
 #include <wlantypes.h>
 
@@ -195,6 +194,7 @@ struct ProxyWifiHyperVSettings
     /// @param guestVmId The vm id of the HyperV container guest from which to allow connections.
     /// @param requestResponsePort The HyperV socket port number for the request/response communication channel.
     /// @param notificationPort The HyperV socket port number for the notification communication channel.
+    /// @param mode The mode of operation used to emulate or virtualize Wifi
     ProxyWifiHyperVSettings(const GUID& guestVmId, unsigned short requestResponsePort, unsigned short notificationPort, OperationMode mode);
 
     /// @brief Construct a setting object to configure a new Wifi Proxy using an Hyper V transport
@@ -221,12 +221,12 @@ struct ProxyWifiTcpSettings
     /// @param listenIp The TCP/IP address for the proxy to listen for connection.
     /// @param requestResponsePort The TCP/IP port number for the request/response communication channel.
     /// @param notificationPort The TCP/IP port number for the notification communication channel.
-    /// @param mode The initial mode the proxy should start with
-    ProxyWifiTcpSettings(const std::string& listenIp, unsigned short requestResponsePort, unsigned short notificationPort, OperationMode mode);
+    /// @param mode The mode of operation used to emulate or virtualize Wifi
+    ProxyWifiTcpSettings(std::string listenIp, unsigned short requestResponsePort, unsigned short notificationPort, OperationMode mode);
 
     /// @brief Construct a setting object to configure a new Wifi Proxy using a Tcp transport
     /// @param listenIp The TCP/IP address for the proxy to listen for connection.
-    explicit ProxyWifiTcpSettings(const std::string& listenIp);
+    explicit ProxyWifiTcpSettings(std::string listenIp);
 
     /// @brief The TCP/IP port number for the request/response communication channel.
     unsigned short RequestResponsePort = RequestResponsePortDefault;

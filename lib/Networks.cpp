@@ -21,14 +21,14 @@ enum class Endianness
 /// @brief Append an unsigned integer to a vector as a list of bytes with specified endianness
 /// @tparam N The number of bytes to append to the vector
 /// @tparam E The endianness (Little = CPU order, Big = Network order)
-/// @example appendNetworkBytes<4, Endianness::Big>(vec, 0x000fac04) -> vec = {..., 0x00, 0x0f, 0xac, 0x04}
-template <size_t N, Endianness E, class T, class V, std::enable_if_t<std::is_integral<V>::value && !std::is_signed<V>::value, int> = 1>
+/// @example appendBytes<4, Endianness::Big>(vec, 0x000fac04) -> vec = {..., 0x00, 0x0f, 0xac, 0x04}
+template <size_t N, Endianness E, class T, class V, std::enable_if_t<std::is_integral_v<V> && !std::is_signed_v<V>, int> = 1>
 void appendBytes(std::vector<T>& vector, V value)
 {
     vector.reserve(vector.size() + N);
-    for (auto i = 0; i < N; ++i)
+    for (auto i = 0u; i < N; ++i)
     {
-        auto bitShift = 0;
+        auto bitShift = 0u;
         if constexpr (E == Endianness::Big)
         {
             bitShift = (N - 1 - i) * 8;
@@ -77,7 +77,7 @@ std::vector<uint8_t> FakeBss::BuildInformationElements() const
         // Warning: Assume all provided akm and cipher are compatibles
         constexpr auto rsnIeBaseSize = 12; // Version, Group cipher, Num ciphers, Num akms, capabilities
         constexpr auto suiteBlockSize = 4;
-        const uint8_t rsnIeSize = wil::safe_cast<uint8_t>(rsnIeBaseSize + (akmSuites.size() + cipherSuites.size()) * suiteBlockSize);
+        const auto rsnIeSize = wil::safe_cast<uint8_t>(rsnIeBaseSize + (akmSuites.size() + cipherSuites.size()) * suiteBlockSize);
 
         ies.insert(ies.end(), {WI_EnumValue(ElementId::Rsn), rsnIeSize});
 
@@ -119,7 +119,7 @@ ScannedBss::ScannedBss(const FakeBss& fakeBss)
 }
 
 ScannedBss::ScannedBss(Bssid bssid, Ssid ssid, uint16_t capabilities, int8_t rssi, uint32_t channelCenterFreq, uint16_t beaconInterval, std::vector<uint8_t> ies)
-    : bssid{std::move(bssid)}, ssid{std::move(ssid)}, capabilities{capabilities}, rssi{rssi}, channelCenterFreq{channelCenterFreq}, beaconInterval{beaconInterval}, ies{std::move(ies)}
+    : bssid{bssid}, ssid{std::move(ssid)}, capabilities{capabilities}, rssi{rssi}, channelCenterFreq{channelCenterFreq}, beaconInterval{beaconInterval}, ies{std::move(ies)}
 {
 }
 

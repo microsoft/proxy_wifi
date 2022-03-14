@@ -23,6 +23,6 @@ TEST_CASE("Creating a WlanApiWrapper doesn't cause a crash", "[init]")
 
 TEST_CASE("WlanApiWrapper is optionnal to create an OperationHandler", "[init]")
 {
-    auto opHandler = MakeWlansvcOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper>{}, {}, {});
+    const auto opHandler = MakeWlansvcOperationHandler(std::shared_ptr<Wlansvc::WlanApiWrapper>{}, {}, {});
     CHECK(opHandler);
 }

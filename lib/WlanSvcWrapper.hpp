@@ -2,12 +2,11 @@
 // Licensed under the MIT license.
 #pragma once
 
-#include <windows.h>
+#include <Windows.h>
 #include <wlanapi.h>
 #include <wil/resource.h>
 
 #include <functional>
-#include <mutex>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -66,6 +65,11 @@ public:
     WlanApiWrapperImpl();
     ~WlanApiWrapperImpl() override;
 
+    WlanApiWrapperImpl(const WlanApiWrapperImpl&) = delete;
+    WlanApiWrapperImpl(WlanApiWrapperImpl&&) = delete;
+    WlanApiWrapperImpl& operator=(const WlanApiWrapperImpl&) = delete;
+    WlanApiWrapperImpl& operator=(WlanApiWrapperImpl&&) = delete;
+
     std::vector<GUID> EnumerateInterfaces() override;
     void Subscribe(const GUID& interfaceGuid, std::function<void(const WLAN_NOTIFICATION_DATA&)> callback) override;
     void Unsubscribe(const GUID& interfaceGuid) override;
@@ -81,7 +85,7 @@ private:
     void HandleWlansvcNotification(PWLAN_NOTIFICATION_DATA pNotification);
 
 private:
-    HANDLE m_wlanHandle;
+    HANDLE m_wlanHandle{};
     wil::srwlock m_callbacksLock;
     std::unordered_map<GUID, std::function<void(const WLAN_NOTIFICATION_DATA&)>> m_callbacks;
 

@@ -16,13 +16,18 @@ class ProxyWifiCommon: public ProxyWifiService
 {
 public:
     ProxyWifiCommon(OperationMode mode, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver);
-    virtual ~ProxyWifiCommon();
+    ~ProxyWifiCommon() override;
+
+    ProxyWifiCommon(const ProxyWifiCommon&) = delete;
+    ProxyWifiCommon& operator=(const ProxyWifiCommon&) = delete;
+    ProxyWifiCommon(ProxyWifiCommon&&) = delete;
+    ProxyWifiCommon& operator=(ProxyWifiCommon&&) = delete;
 
     /// @brief Start the proxy.
     ///
     /// This creates the transport and begins accepting connections on it. Until
     /// Start() is called, the proxy is inactive and does not accept connections.
-    void Start();
+    void Start() override;
 
     /// @brief Stop the proxy.
     ///
@@ -30,7 +35,7 @@ public:
     /// to the proxy and destroy the transport. Following execution of this call,
     /// the proxy will no longer accept new connections. It may be restarted
     /// using Start().
-    void Stop();
+    void Stop() override;
 
 protected:
     /// @brief Create a transport for the proxy.
@@ -75,6 +80,8 @@ class ProxyWifiHyperV : public ProxyWifiCommon
 public:
     /// @brief Construct a new Proxy Wifi HyperV object.
     /// @param settings The settings controlling operations of the proxy.
+    /// @param fakeNetworkCallback Function that the proxy will call when it needs a list of fake network to emulate
+    /// @param pObserver The handler for guest and host notifications
     explicit ProxyWifiHyperV(const ProxyWifiHyperVSettings& settings, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver);
 
     /// @brief Get HyperV specific proxy settings.
@@ -98,6 +105,8 @@ public:
     /// @brief Construct a new Proxy Wifi Tcp object.
     ///
     /// @param settings The settings controlling operations of the proxy.
+    /// @param fakeNetworkCallback Function that the proxy will call when it needs a list of fake network to emulate
+    /// @param pObserver The handler for guest and host notifications
     explicit ProxyWifiTcp(const ProxyWifiTcpSettings& settings, FakeNetworkProvider fakeNetworkCallback, ProxyWifiObserver* pObserver);
 
     /// @brief TCP specific proxy settings.

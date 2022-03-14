@@ -4,12 +4,10 @@
 
 #include <functional>
 #include <memory>
-#include <mutex>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
-#include <winsock2.h>
+#include <WinSock2.h>
 
 #include <wil/resource.h>
 
@@ -31,6 +29,11 @@ public:
     /// @param requestResponsePort The request/response port to bind to.
     /// @param notificationPort The notification port to connect to.
     Transport(std::shared_ptr<OperationHandler>& operationHandler, unsigned short requestResponsePort, unsigned short notificationPort);
+
+    Transport(const Transport&) = delete;
+    Transport(Transport&&) = delete;
+    Transport& operator=(const Transport&) = delete;
+    Transport& operator=(Transport&&) = delete;
 
     /// @brief Destroy the Wifi Proxy Transport Socket object.
     virtual ~Transport();
@@ -89,7 +92,7 @@ public:
     /// @param notificationPort The HyperV socket port for the notification communication channel.
     /// @param guestVmId The vm if for which the transport should be restricted to.
     HyperVTransport(
-        std::shared_ptr<OperationHandler>& operationHandler, unsigned short requestResponsePort, unsigned short notificationPort, const GUID guestVmId);
+        std::shared_ptr<OperationHandler>& operationHandler, unsigned short requestResponsePort, unsigned short notificationPort, const GUID& guestVmId);
 
 private:
     wil::unique_socket CreateListenSocket() override;
@@ -122,7 +125,7 @@ private:
 
 private:
     const std::string m_listenIp;
-    IN_ADDR m_listenIpAddr;
+    IN_ADDR m_listenIpAddr{};
 };
 
 } // namespace ProxyWifi

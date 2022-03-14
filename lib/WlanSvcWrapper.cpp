@@ -35,7 +35,7 @@ try
 {
     SetThreadWilFailureLogger();
     THROW_IF_NULL_ALLOC(pContext);
-    auto& wlansvc = *reinterpret_cast<WlanApiWrapperImpl*>(pContext);
+    auto& wlansvc = *static_cast<WlanApiWrapperImpl*>(pContext);
     wlansvc.HandleWlansvcNotification(pNotification);
 }
 CATCH_LOG()
@@ -170,7 +170,7 @@ std::vector<ScannedBss> WlanApiWrapperImpl::GetScannedBssList(const GUID& interf
     std::vector<ScannedBss> scannedBss;
     for (const auto& bss : wil::make_range(pBssList->wlanBssEntries, pBssList->dwNumberOfItems))
     {
-        auto ieStart = reinterpret_cast<const uint8_t*>(&bss) + bss.ulIeOffset;
+        const auto ieStart = reinterpret_cast<const uint8_t*>(&bss) + bss.ulIeOffset;
         scannedBss.emplace_back(
             toBssid(bss.dot11Bssid),
             bss.dot11Ssid,
