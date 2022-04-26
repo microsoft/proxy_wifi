@@ -77,6 +77,16 @@ private:
             ::SetThreadpoolCallbackPool(&m_threadpoolEnv, m_threadPool.get());
         }
 
+        ~ThreadPool()
+        {
+            Reset();
+        }
+
+        ThreadPool(const ThreadPool&) = delete;
+        ThreadPool(ThreadPool&&) = delete;
+        ThreadPool& operator=(const ThreadPool&) = delete;
+        ThreadPool& operator=(ThreadPool&&) = delete;
+
         wil::unique_threadpool_work CreateWork(PTP_WORK_CALLBACK callback, void* context)
         {
             wil::unique_threadpool_work work(::CreateThreadpoolWork(callback, context, &m_threadpoolEnv));
@@ -84,9 +94,10 @@ private:
             return work;
         }
 
-        void Cancel() noexcept
+        void Reset() noexcept
         {
             m_threadPool.reset();
+            ::DestroyThreadpoolEnvironment(&m_threadpoolEnv);
         }
     };
 
