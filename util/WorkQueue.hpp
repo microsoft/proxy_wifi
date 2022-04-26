@@ -59,9 +59,11 @@ private:
 
     struct ThreadPool
     {
+        using unique_tp_env = wil::unique_struct<TP_CALLBACK_ENVIRON, decltype(&::DestroyThreadpoolEnvironment), ::DestroyThreadpoolEnvironment>;
+        unique_tp_env m_threadpoolEnv;
+
         using unique_tp_pool = wil::unique_any<PTP_POOL, decltype(&::CloseThreadpool), ::CloseThreadpool>;
         unique_tp_pool m_threadPool;
-        TP_CALLBACK_ENVIRON m_threadpoolEnv{};
 
         ThreadPool(DWORD countMinThread, DWORD countMaxThread)
         {
@@ -77,16 +79,6 @@ private:
             ::SetThreadpoolCallbackPool(&m_threadpoolEnv, m_threadPool.get());
         }
 
-        ~ThreadPool()
-        {
-            Reset();
-        }
-
-        ThreadPool(const ThreadPool&) = delete;
-        ThreadPool(ThreadPool&&) = delete;
-        ThreadPool& operator=(const ThreadPool&) = delete;
-        ThreadPool& operator=(ThreadPool&&) = delete;
-
         wil::unique_threadpool_work CreateWork(PTP_WORK_CALLBACK callback, void* context)
         {
             wil::unique_threadpool_work work(::CreateThreadpoolWork(callback, context, &m_threadpoolEnv));
@@ -97,7 +89,7 @@ private:
         void Reset() noexcept
         {
             m_threadPool.reset();
-            ::DestroyThreadpoolEnvironment(&m_threadpoolEnv);
+            m_threadpoolEnv.reset();
         }
     };
 
