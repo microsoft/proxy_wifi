@@ -83,6 +83,11 @@ private:
             THROW_LAST_ERROR_IF_NULL(work.get());
             return work;
         }
+
+        void Cancel() noexcept
+        {
+            m_threadPool.reset();
+        }
     };
 
     static void CALLBACK WorkCallback(_Inout_ PTP_CALLBACK_INSTANCE, _In_ void* context, _Inout_ PTP_WORK) noexcept
@@ -97,7 +102,7 @@ private:
                 return;
             }
 
-            workItem = std::move(pThis->m_workQueue.front());
+            workItem.emplace(std::move(pThis->m_workQueue.front()));
             pThis->m_workQueue.pop_front();
         }
 
@@ -134,7 +139,6 @@ public:
         }};
         m_workQueue.Submit(std::move(t));
     }
-
 
     /// @brief Helper to execute a task in the workqueue and wait its completion
     template<class F, std::enable_if_t<std::is_invocable_v<F>, int> = 1>
