@@ -127,7 +127,7 @@ driver exists only for Linux.
 
 Proxy_wifi driver role is to intercept Wi-Fi control path related operations
 from the guest and forward them to proxy_wifi service. Communication between
-proxy_wifi driver and proxy_wifi service relies on two hv_sockets: one allows
+proxy_wifi driver and proxy_wifi service relies on two Hyper-V sockets (hvsockets): one allows
 proxy_wifi driver to make a request to proxy_wifi service and wait for the
 answer ; the other one allows proxy_wifi service to send spontaneous
 notifications to proxy_wifi driver.
