@@ -209,7 +209,7 @@ using simulated data or fowarding the operation through the host Wlan API.
 
 #### Simulated interface
 
-If the client application provide a `FakeNetworkProvider` callback when instancitating proxy_wifi service, a simulated (or "fake" interface will be created). It allows to simulate Wi-Fi networks in the guest.
+If the client application provide a `FakeNetworkProvider` callback when instantiating proxy_wifi service, a simulated (or "fake" interface will be created). It allows to simulate Wi-Fi networks in the guest.
 
 At any point in time, the simulated interface consider that all networks returned by the `FakeNetworkProvider` callback are visible and connected. Connection and disconnection request to these networks will always succeed as long as they are returned by the callback and they will correspond to no-op.
 
