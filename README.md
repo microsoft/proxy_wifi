@@ -121,7 +121,7 @@ Proxy_wifi is constituted of a service component (proxy_wifi service) meant to
 run on a Windows host, and a driver component (proxy_wifi driver) meant to run
 on a guest virtual machine. This repository contains the implementation of
 proxy_wifi service for Windows. Currently, an implementation of proxy_wifi
-driver exists only for Linux
+driver exists only for Linux.
 
 ![General architecture](./doc/proxy_wifi_general_architecture.png)
 
