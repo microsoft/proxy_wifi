@@ -154,7 +154,7 @@ Proxy_wifi is composed of two main layers: the transport
 The concrete implementations of `ProxyWifiService` initialize these two layers
 and expose a clean API to client applications.
 
-The transport is responsible of communications with the proxy_wifi driver on
+The transport is responsible for communications with the proxy_wifi driver on
 the guest VM. The operation handler is responsible of honoring these requests
 and notifying the client application.
 
