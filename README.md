@@ -60,7 +60,6 @@ Open `proxy-wifi.sln` which contains a project for each build target:
 * `proxy-wifi-cmdline`
 * `ALL_BUILD`
 * `INSTALL`
-* `PACKAGE`
 
 #### With Visual Studio Build Tools
 
@@ -81,7 +80,7 @@ msbuild.exe proxy-wifi.vcxproj
 #### With CTest
 
 ```Shell
-cmake --build ..
+ctest -T test
 ```
 
 ## Basic usage
@@ -107,7 +106,7 @@ You can additionnaly setup a logger to chose where logs will be output.
     auto observer = MyObserver{};
 
     // Callback providing a list of networks that will be simulated by the Wi-Fi proxy
-    auto provideFakeNetworks = [this]() -> std::vector<WifiNetworkInfo> { return ... };
+    auto provideFakeNetworks = [this]() -> std::vector<WifiNetworkInfo> { return {}; /* Return simulated network SSID + BSSID */ };
 
     auto wifiProxy = BuildProxyWifiService(
         ProxyWifiHyperVSettings{vmId},
@@ -116,44 +115,132 @@ You can additionnaly setup a logger to chose where logs will be output.
     wifiProxy->Start();
 ```
 
-## Architecture
+## Architecture overview
 
-Proxy_wifi is composed of two main layers: the transport ([Transport.hpp](lib/Transport.hpp)) and the operation handler ([OperationHandler.hpp](lib/OperationHandler.hpp)).
-Implementations of `ProxyWifiService` initialize these two layers.
-The transport is responsible of communications with the proxy_wifi driver on the guest VM, while the operation handler interact with the Windows Wlan API to honor these requests.
+Proxy_wifi is constituted of a service component (proxy_wifi service) meant to
+run on a Windows host, and a driver component (proxy_wifi driver) meant to run
+on a guest virtual machine. This repository contains the implementation of
+proxy_wifi service for Windows. Currently, an implementation of proxy_wifi
+driver exists only for Linux
 
-### The transport layer
+![General architecture](./doc/proxy_wifi_general_architecture.png)
+
+Proxy_wifi driver role is to intercept Wi-Fi control path related operations
+from the guest and forward them to proxy_wifi service. Communication between
+proxy_wifi driver and proxy_wifi service relies on two hv_sockets: one allows
+proxy_wifi driver to make a request to proxy_wifi service and wait for the
+answer ; the other one allows proxy_wifi service to send spontaneous
+notifications to proxy_wifi driver.
+
+Proxy_wifi service is a library, its code will be running inside your
+application process.  It uses the Windows Wlan API to perform any Wi-Fi
+realated operation in the host. It can also emulate operations on fake
+networks if requested by the client application.
+
+Proxy_wifi service present an observer interface (`ProxyWifiObserver`) that
+client application should implement to be notified when an operation is request
+by the guest or a network change is detected on the host. It is expected the
+client application will monitor these events to synchronize proxy_wifi with
+other component virtualizing the data path or L3 layer properties.
+
+## Proxy_wifi service architecture
+
+![Proxy_wifi service architecture](./doc/proxy_wifi_service_architecture.png)
+
+Proxy_wifi is composed of two main layers: the transport
+([Transport.hpp](lib/Transport.hpp)) and the operation handler
+([OperationHandler.hpp](lib/OperationHandler.hpp)).
+
+The concrete implementations of `ProxyWifiService` initialize these two layers
+and expose a clean API to client applications.
+
+The transport is responsible of communications with the proxy_wifi driver on
+the guest VM. The operation handler is responsible of honoring these requests
+and notifying the client application.
+
+### Transport layer
 
 The transport layer communicate with the guest proxy_wifi driver over two channels:
 
-- a request channel handles commands from the proxy_wifi driver and their response. These exchanges are synchronous, only one command is processed at a time.
-- a notification channel handles spontaneous notification from the host, such as network disconnection and signal quality changes.
+- a request channel: it handles commands from the proxy_wifi driver and their
+  responses, such as connection or scan requests.
+- a notification channel: it handles spontaneous notification from the host, such
+  as network disconnection, signal quality changes and scanned bss updates.
 
-The transport layers deals with `Message` ([Messages.hpp](lib/Messages.hpp)) and isn't aware of their content or structure beside the header/body structure.
+The transport layers deals with `Message` ([Messages.hpp](lib/Messages.hpp)) and isn't aware of their content or structure beside the header + body layout.
+
+Messages coming over the request channel are handled as synchronous transactions: once a request is accepted in `Transport::AcceptConnections` ([Transport.hpp](lib/Transport.hpp)), no other request will be handled until the transaction is completed by sending an answer.
+
+On the other hand, messages sent over the notification channel are handled in a fire and forget fashion: the transport send notification asynchronously through a queue and doesn't expect any answer from proxy_wifi driver.
 
 Two implementations of the transport layers are available: over HV sockets or over TCP sockets.
 Only the HV socket implementation is supported by the current proxy_wifi driver on the guest. The TCP implementation is mostly available for testing.
 
 ### The operation handler
 
-The operation handler handle request received by the transport and produce answer and notifications.
+The operation handler manage a list of interfaces. It dispatches request
+received by the transport and aggregate results produced by each interfaces. It
+is also responsible to send notification both to proxy_wifi driver on the guest
+and to the client application.
 
-It uses typed requests and responses, parsed from the `Messages` used by the transport ([`Messages.hpp`](lib/Messages.hpp)).
-Request and notifications processing is serialized through a work queue.
+The operation handler uses typed requests and responses, parsed from the
+`Messages` used by the transport ([`Messages.hpp`](lib/Messages.hpp)).
+Interface management, requests processing and notifications targetting the
+guest are serialized through a work queue (`m_serializedRunner`).
 
-The operation handler maintain a list of `WlanInterface` ([WlanInterface.hpp](lib/WlanInterface.hpp)) that represent actual Wi-Fi interfaces on the host or fake interfaces to simulate networks.
-It dispatches requests to interfaces and aggregate the results as necessary to build messages that the transport layer can send.
+Another work queue (`m_clientNotificationQueue`) serialize notifications sent
+to the client application.
+
+The operation handler maintain a list of `WlanInterface`
+([WlanInterface.hpp](lib/WlanInterface.hpp)) that represent actual Wi-Fi
+interfaces on the host or fake interfaces to simulate networks.
+
+Requests are dispatched to interfaces, either serialized or running
+concurrently depending on the operation type.
 
 In particular:
 
-- "Scan" operations are ran on all available interfaces, and the scan results are aggregated
+- "Scan" operations are ran on all available interfaces concurrently, and the scan results are aggregated
 - "Connect" operations are ran successively on each interface until one succeeds
+- "Disconnect" operations target only the previously connected interface
 
-Each interface handles the command depending on its concrete implementation, using simulated data or fowarding the operation through the host Wlan API.
+Each interface handles the command depending on its concrete implementation,
+using simulated data or fowarding the operation through the host Wlan API.
 
-## Capacity and limitations
+#### Simulated interface
 
-Proxy_wifi currently fully support connections from the guest to only WPA2PSK and Open networks.
+If the client application provide a `FakeNetworkProvider` callback when instancitating proxy_wifi service, a simulated (or "fake" interface will be created). It allows to simulate Wi-Fi networks in the guest.
+
+At any point in time, the simulated interface consider that all networks returned by the `FakeNetworkProvider` callback are visible and connected. Connection and disconnection request to these networks will always succeed as long as they are returned by the callback and they will correspond to no-op.
+
+The simulated interface is always considered first when dispatching operations, effectively giving it priority.
+
+#### Real interfaces
+
+Real interfaces correspond to the actual wlan STA interfaces on the host.
+Proxy_wifi service add and remove these interfaces dynamically following their
+state on the system.
+
+Operation on real interfaces are implemented through calls to the Win32 Wlan
+APIs. However, the operations requested from the guest are not mapped directly
+to the equivalent host operation, since those operation can be time-consuming
+or impact the host network connectivity.
+
+In particular:
+
+- a host interface will be connected at the guest request only if no other
+  interface was already connected to the requested network.
+- a host interface will be disconnected at the guest request only if it was
+  connected because of the guest.
+- a host interface will always schedule a scan on the host at the guest
+  request, but will return cached results immediately, unless a previous scan
+  request still hasn't completed. Whenever a scan completes on the host, the
+  visible network are spontaneously sent to the guest to limit the number of
+  scan necessary.
+
+## Capabilities and limitations
+
+Proxy_wifi currently fully support connections from the guest to WPA2PSK and Open networks only.
 This is due to Linux allowing only these two authentication algorithms to be offloaded to the driver.
 
 In addition, Proxy_wifi allows the guest VM to "mirror" a connection on the host, for any network type.
