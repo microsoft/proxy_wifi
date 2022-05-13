@@ -134,7 +134,7 @@ notifications to proxy_wifi driver.
 
 Proxy_wifi service is a library, its code will be running inside your
 application process.  It uses the Windows Wlan API to perform any Wi-Fi
-realated operation in the host. It can also emulate operations on fake
+related operation in the host. It can also emulate operations on fake
 networks if requested by the client application.
 
 Proxy_wifi service present an observer interface (`ProxyWifiObserver`) that
