@@ -24,7 +24,7 @@ void Connection::Run()
     }
     catch (...)
     {
-        LOG_WIN32_MSG(ERROR_INVALID_MESSAGE, "Failed to received a message");
+        LOG_WIN32_MSG(ERROR_INVALID_DATA, "Failed to received a message");
         return;
     }
 
@@ -83,7 +83,7 @@ void Connection::Run()
             break;
         }
         default:
-            THROW_WIN32_MSG(ERROR_INVALID_MESSAGE, "Ignoring unknown command ID: %d", request->hdr.operation);
+            THROW_WIN32_MSG(ERROR_INVALID_DATA, "Ignoring unknown command ID: %d", request->hdr.operation);
         }
 
         Log::Trace(

@@ -102,6 +102,21 @@ static bool ReceiveBytes(const wil::unique_socket& socket, gsl::span<uint8_t> bu
 {
     while (buffer.size_bytes() > 0)
     {
+        // Wait until there is something to read (or fail after a timeout)
+        constexpr timeval timeout{.tv_sec{0}, .tv_usec{500000}}; // 0.5 sec timeout
+        fd_set read_set{};
+        FD_SET(socket.get(), &read_set);
+        const auto socket_ready = select(0, &read_set, nullptr, nullptr, &timeout);
+        if (socket_ready == SOCKET_ERROR)
+        {
+            THROW_LAST_ERROR_MSG("Error while waiting for a message");
+        }
+        else if (socket_ready == 0)
+        {
+            THROW_WIN32_MSG(ERROR_TIMEOUT, "Timeout while waiting for a message");
+        }
+
+        // Read as many bytes as possible up to the buffer size
         const auto transfer_size = recv(socket.get(), reinterpret_cast<char*>(buffer.data()), static_cast<int>(buffer.size_bytes()), 0);
         if (transfer_size < 0)
         {
@@ -147,9 +162,23 @@ std::optional<Message> ReceiveProxyWifiMessage(const wil::unique_socket& socket)
 
 static void SendBytes(wil::unique_socket& socket, gsl::span<const uint8_t> dataToSend)
 {
-    // TODO: Is it needed to loop on a send?
     while (dataToSend.size_bytes() > 0)
     {
+        // Wait until the destination is ready to receive
+        constexpr timeval timeout{.tv_sec{0}, .tv_usec{500000}}; // 0.5 sec timeout
+        fd_set write_set{};
+        FD_SET(socket.get(), &write_set);
+        const auto socket_ready = select(0, nullptr, &write_set, nullptr, &timeout);
+        if (socket_ready == SOCKET_ERROR)
+        {
+            THROW_LAST_ERROR_MSG("Error while waiting to send a message");
+        }
+        else if (socket_ready == 0)
+        {
+            THROW_WIN32_MSG(ERROR_TIMEOUT, "Timeout while waiting to send a message");
+        }
+
+        // Send the message
         const auto transfer_size =
             send(socket.get(), reinterpret_cast<const char*>(dataToSend.data()), wil::safe_cast<int>(dataToSend.size_bytes()), 0);
         if (transfer_size <= 0)
