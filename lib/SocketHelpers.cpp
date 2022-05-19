@@ -103,7 +103,7 @@ static bool ReceiveBytes(const wil::unique_socket& socket, gsl::span<uint8_t> bu
     while (buffer.size_bytes() > 0)
     {
         // Wait until there is something to read (or fail after a timeout)
-        const timeval timeout{0, 500000}; // 0.5 sec timeout
+        constexpr timeval timeout{.tv_sec{0}, .tv_usec{500000}}; // 0.5 sec timeout
         fd_set read_set{};
         FD_SET(socket.get(), &read_set);
         const auto socket_ready = select(0, &read_set, nullptr, nullptr, &timeout);
@@ -165,7 +165,7 @@ static void SendBytes(wil::unique_socket& socket, gsl::span<const uint8_t> dataT
     while (dataToSend.size_bytes() > 0)
     {
         // Wait until the destination is ready to receive
-        const timeval timeout{0, 500000}; // 0.5 sec timeout
+        constexpr timeval timeout{.tv_sec{0}, .tv_usec{500000}}; // 0.5 sec timeout
         fd_set write_set{};
         FD_SET(socket.get(), &write_set);
         const auto socket_ready = select(0, nullptr, &write_set, nullptr, &timeout);
