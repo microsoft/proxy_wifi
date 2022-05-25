@@ -420,11 +420,6 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
 
     struct TestObserver : public ProxyWifiObserver
     {
-        TestObserver() = default;
-        TestObserver(Authorization auth) : allowedToConnect{auth}
-        {
-        }
-
         void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
             notifs.emplace_back(Notif::HostConnect, Type::None);
@@ -439,7 +434,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.emplace_back(Notif::GuestConnectRequest, type);
-            return this->allowedToConnect;
+            return Authorization::Approve;
         }
 
         void OnGuestConnectionCompletion(OperationType t, OperationStatus, const ConnectCompleteArgs&) noexcept override
@@ -461,7 +456,6 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         }
 
         std::vector<std::pair<Notif, Type>> notifs;
-        Authorization allowedToConnect = Authorization::Approve;
     };
 
     auto pObserver = std::make_unique<TestObserver>();
@@ -469,7 +463,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
     auto connectRequest = MakeOpenConnectRequest(Mock::c_openNetwork.bss.ssid);
     auto disconnectRequest = MakeDisconnectRequest(1);
 
-    SECTION("Notifications on guest initiated operations")
+    SECTION("Notifications on guest directed operations")
     {
         auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
         opHandler->DrainClientNotifications();
@@ -540,6 +534,69 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         opHandler->DrainClientNotifications();
 
         CHECK(pObserver->notifs == std::vector<std::pair<Notif, Type>>{{Notif::HostDisconnect, Type::None}});
+    }
+}
+
+TEST_CASE("The client can approve or deny guest connection requests", "[wlansvcOpHandler][clientNotification]")
+{
+    struct TestObserver : public ProxyWifiObserver
+    {
+        Authorization AuthorizeGuestConnectionRequest(OperationType, const ConnectRequestArgs&) noexcept override
+        {
+            return authorizeToConnect;
+        }
+        Authorization authorizeToConnect;
+    };
+
+    auto fakeWlansvc =
+        std::make_shared<Mock::WlanSvcFake>(std::vector{Mock::c_intf1}, std::vector{Mock::c_wpa2PskNetwork, Mock::c_openNetwork});
+
+    auto pObserver = std::make_unique<TestObserver>();
+    auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc, {}, pObserver.get());
+    auto connectRequest = MakeOpenConnectRequest(Mock::c_openNetwork.bss.ssid);
+    auto disconnectRequest = MakeDisconnectRequest(1);
+
+    SECTION("The client can approve a guest directed connection request")
+    {
+        pObserver->authorizeToConnect = ProxyWifiObserver::Approve;
+        auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
+        opHandler->DrainClientNotifications();
+        CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::Success));
+    }
+
+    SECTION("The client can deny a guest directed connection request")
+    {
+        pObserver->authorizeToConnect = ProxyWifiObserver::Deny;
+        auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
+        opHandler->DrainClientNotifications();
+        CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::UnspecifiedFailure));
+
+    }
+
+    SECTION("The client can approve a host mirroring connection request")
+    {
+        pObserver->authorizeToConnect = ProxyWifiObserver::Approve;
+
+        fakeWlansvc->ConnectHost(Mock::c_intf1, Mock::c_openNetwork.bss.ssid);
+        fakeWlansvc->WaitForNotifComplete();
+        opHandler->DrainClientNotifications();
+
+        auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
+        opHandler->DrainClientNotifications();
+        CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::Success));
+    }
+
+    SECTION("The client can deny a host mirroring connection request")
+    {
+        pObserver->authorizeToConnect = ProxyWifiObserver::Deny;
+
+        fakeWlansvc->ConnectHost(Mock::c_intf1, Mock::c_openNetwork.bss.ssid);
+        fakeWlansvc->WaitForNotifComplete();
+        opHandler->DrainClientNotifications();
+
+        auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
+        opHandler->DrainClientNotifications();
+        CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::UnspecifiedFailure));
     }
 }
 
