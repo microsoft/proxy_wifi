@@ -96,7 +96,7 @@ You can additionnaly setup a logger to chose where logs will be output.
 
     class MyObserver: public ProxyWifiObserver
     {
-        void Authorization::GuestRequestingToConnect(OperationType type, const ConnectRequestArgs& connectionInfo) noexcept override
+        Authorization AuthorizeGuestConnectionRequest(OperationType type, const ConnectRequestArgs& connectionInfo) noexcept override
         {
             std::cout << "The guest requested a connection" << std::endl;
             return Authorization::Approve;
