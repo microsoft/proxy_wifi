@@ -570,7 +570,6 @@ TEST_CASE("The client can approve or deny guest connection requests", "[wlansvcO
         auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
         opHandler->DrainClientNotifications();
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::UnspecifiedFailure));
-
     }
 
     SECTION("The client can approve a host mirroring connection request")
