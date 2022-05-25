@@ -276,7 +276,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
             if (AuthorizeGuestConnectionRequest(OperationType::HostMirroring, ssid) == ProxyWifiObserver::Authorization::Deny)
             {
                 connectionStatus = WlanStatus::UnspecifiedFailure;
-                operationStatus = OperationStatus::Failed;
+                operationStatus = OperationStatus::Denied;
             }
 
             OnGuestConnectionCompletion(OperationType::HostMirroring, operationStatus, connectedIntfGuid, ssid, networkInfo->auth);
@@ -288,7 +288,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
     // Notify the client of the connection request and ask for permission, fail the request if they deny it
     if (AuthorizeGuestConnectionRequest(OperationType::GuestDirected, ssid) == ProxyWifiObserver::Authorization::Deny)
     {
-        OnGuestConnectionCompletion(OperationType::HostMirroring, OperationStatus::Failed, {}, ssid, {});
+        OnGuestConnectionCompletion(OperationType::HostMirroring, OperationStatus::Denied, {}, ssid, {});
         return ConnectResponse{WlanStatus::UnspecifiedFailure, Bssid{}, ++m_sessionId};
     }
 
