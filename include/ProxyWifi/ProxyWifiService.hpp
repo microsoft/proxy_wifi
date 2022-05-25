@@ -119,6 +119,12 @@ public:
         DOT11_SSID ssid;
     };
 
+    enum Authorization
+    {
+        Approve,
+        Deny
+    };
+
     /// @brief An host WiFi interface connected to a network
     virtual void OnHostConnection(const ConnectCompleteArgs& /* connectionInfo */) noexcept
     {
@@ -130,10 +136,12 @@ public:
     }
 
     /// @brief The guest requested a connection to a network
+    /// @return Return `Authorization::Approve` to let the connection proceed, return `Authorization::Deny` to answer to the guest with a failure
     /// If `type == OperationType::HostMirroring`, an host inteface is already connected to the network, otherwise, one will be
-    /// connected The connection won't proceed until the callback returns
-    virtual void OnGuestConnectionRequest(OperationType /* type */, const ConnectRequestArgs& /* connectionInfo */) noexcept
+    /// connected. The connection won't proceed until the callback returns
+    virtual Authorization AuthorizeGuestConnectionRequest(OperationType /* type */, const ConnectRequestArgs& /* connectionInfo */) noexcept
     {
+        return Authorization::Approve;
     }
 
     /// @brief A guest connection request was processed

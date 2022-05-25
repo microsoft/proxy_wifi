@@ -81,7 +81,7 @@ private:
     void SendGuestNotification(std::variant<DisconnectNotif, SignalQualityNotif> notif);
 
     /// @brief Notify the guest of guest operation request and completion
-    void OnGuestConnectionRequest(OperationType type, const Ssid& ssid) noexcept;
+    ProxyWifiObserver::Authorization AuthorizeGuestConnectionRequest(OperationType type, const Ssid& ssid) noexcept;
     void OnGuestConnectionCompletion(OperationType type, OperationStatus status, const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) noexcept;
     void OnGuestDisconnectionRequest(OperationType type, const Ssid& ssid) noexcept;
     void OnGuestDisconnectionCompletion(OperationType type, OperationStatus status, const GUID& interfaceGuid, const Ssid& ssid) noexcept;

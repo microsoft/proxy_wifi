@@ -420,29 +420,40 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
 
     struct TestObserver : public ProxyWifiObserver
     {
+        TestObserver() = default;
+        TestObserver(Authorization auth) : allowedToConnect{auth}
+        {
+        }
+
         void OnHostConnection(const ConnectCompleteArgs&) noexcept override
         {
             notifs.emplace_back(Notif::HostConnect, Type::None);
         }
+
         void OnHostDisconnection(const DisconnectCompleteArgs&) noexcept override
         {
             notifs.emplace_back(Notif::HostDisconnect, Type::None);
         }
-        void OnGuestConnectionRequest(OperationType t, const ConnectRequestArgs&) noexcept override
+
+        Authorization AuthorizeGuestConnectionRequest(OperationType t, const ConnectRequestArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.emplace_back(Notif::GuestConnectRequest, type);
+            return this->allowedToConnect;
         }
+
         void OnGuestConnectionCompletion(OperationType t, OperationStatus, const ConnectCompleteArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.emplace_back(Notif::GuestConnectComplete, type);
         }
+
         void OnGuestDisconnectionRequest(OperationType t, const DisconnectRequestArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
             notifs.emplace_back(Notif::GuestDisconnectRequest, type);
         }
+
         void OnGuestDisconnectionCompletion(OperationType t, OperationStatus, const DisconnectCompleteArgs&) noexcept override
         {
             auto type = t == OperationType::GuestDirected ? Type::GuestDirected : Type::HostMirroring;
@@ -450,6 +461,7 @@ TEST_CASE("Notify the client on connection and disconnection", "[wlansvcOpHandle
         }
 
         std::vector<std::pair<Notif, Type>> notifs;
+        Authorization allowedToConnect = Authorization::Approve;
     };
 
     auto pObserver = std::make_unique<TestObserver>();
