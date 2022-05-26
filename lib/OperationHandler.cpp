@@ -62,9 +62,9 @@ void OperationHandler::SendGuestNotification(std::variant<DisconnectNotif, Signa
     }
 }
 
-void OperationHandler::OnGuestConnectionRequest(OperationType type, const Ssid& ssid) noexcept
+ProxyWifiObserver::Authorization OperationHandler::AuthorizeGuestConnectionRequest(OperationType type, const Ssid& ssid) noexcept
 {
-    m_clientNotificationQueue.RunAndWait([&] {
+    return m_clientNotificationQueue.RunAndWait([&] {
         Log::Info(
             L"Notifying the client of a guest connection request. Type: %ws, Ssid: %ws",
             ToString(type),
@@ -72,16 +72,20 @@ void OperationHandler::OnGuestConnectionRequest(OperationType type, const Ssid& 
 
         if (m_pClientObserver)
         {
-            m_pClientObserver->OnGuestConnectionRequest(type, {ssid});
+            return m_pClientObserver->AuthorizeGuestConnectionRequest(type, {ssid});
         }
+
+        return ProxyWifiObserver::Authorization::Approve;
     });
 }
 
-void OperationHandler::OnGuestConnectionCompletion(OperationType type, OperationStatus status, const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) noexcept
+void OperationHandler::OnGuestConnectionCompletion(
+    OperationType type, OperationStatus status, const GUID& interfaceGuid, const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) noexcept
 {
     m_clientNotificationQueue.RunAndWait([&] {
         Log::Info(
-            L"Notifying the client of a guest connection completion. Type: %ws, Status: %ws, Interface: %ws, Ssid: %ws, AuthAlgo: %ws",
+            L"Notifying the client of a guest connection completion. Type: %ws, Status: %ws, Interface: %ws, Ssid: %ws, "
+            L"AuthAlgo: %ws",
             ToString(type),
             ToString(status),
             GuidToString(interfaceGuid).c_str(),
@@ -249,7 +253,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
     {
         // No interface to connect with: fails directly
         Log::Trace(L"No interfaces are present");
-        return ConnectResponse{WlanStatus::UnspecifiedFailure, connectRequest->bssid, m_sessionId};
+        return ConnectResponse{WlanStatus::UnspecifiedFailure, connectRequest->bssid, ++m_sessionId};
     }
 
     for (const auto& wlanIntf : m_wlanInterfaces)
@@ -262,16 +266,31 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
             const auto connectedIntfGuid = wlanIntf->GetGuid();
             m_guestConnection = {ConnectionType::Mirrored, connectedIntfGuid, ssid};
 
-            Log::Info(L"Successfully mirrored the connection on interface %ws. Notifying clients.", GuidToString(connectedIntfGuid).c_str());
-            OnGuestConnectionRequest(OperationType::HostMirroring, ssid);
-            OnGuestConnectionCompletion(OperationType::HostMirroring, OperationStatus::Succeeded, connectedIntfGuid, ssid, networkInfo->auth);
+            Log::Info(
+                L"Successfully mirrored the connection on interface %ws. Notifying clients.", GuidToString(connectedIntfGuid).c_str());
 
-            return ConnectResponse{WlanStatus::Success, networkInfo->bssid, ++m_sessionId};
+            auto connectionStatus = WlanStatus::Success;
+            auto operationStatus = OperationStatus::Succeeded;
+
+            // Notify the client of the connection request and ask for permission, fail the request if they deny it
+            if (AuthorizeGuestConnectionRequest(OperationType::HostMirroring, ssid) == ProxyWifiObserver::Authorization::Deny)
+            {
+                connectionStatus = WlanStatus::UnspecifiedFailure;
+                operationStatus = OperationStatus::Denied;
+            }
+
+            OnGuestConnectionCompletion(OperationType::HostMirroring, operationStatus, connectedIntfGuid, ssid, networkInfo->auth);
+            return ConnectResponse{connectionStatus, networkInfo->bssid, ++m_sessionId};
         }
     }
 
-    // At this point, an host interface will be connected. Notify the client of a guest direct connection
-    OnGuestConnectionRequest(OperationType::GuestDirected, ssid);
+    // No host interface is connected to the request network: if the request go through, we will connect one on the host
+    // Notify the client of the connection request and ask for permission, fail the request if they deny it
+    if (AuthorizeGuestConnectionRequest(OperationType::GuestDirected, ssid) == ProxyWifiObserver::Authorization::Deny)
+    {
+        OnGuestConnectionCompletion(OperationType::HostMirroring, OperationStatus::Denied, {}, ssid, {});
+        return ConnectResponse{WlanStatus::UnspecifiedFailure, Bssid{}, ++m_sessionId};
+    }
 
     try
     {
@@ -326,7 +345,8 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
                 m_guestConnection = {ConnectionType::GuestDirected, connectedIntfGuid, ssid};
 
                 Log::Info(L"Successfully connected on interface %ws. Notifying clients.", GuidToString(connectedIntfGuid).c_str());
-                OnGuestConnectionCompletion(OperationType::GuestDirected, OperationStatus::Succeeded, connectedIntfGuid, ssid, networkInfo.auth);
+                OnGuestConnectionCompletion(
+                    OperationType::GuestDirected, OperationStatus::Succeeded, connectedIntfGuid, ssid, networkInfo.auth);
 
                 return ConnectResponse{connectionResult, networkInfo.bssid, ++m_sessionId};
             }
@@ -375,10 +395,10 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
         const auto guestConnectInfo = m_guestConnection;
         m_guestConnection.reset();
 
-        OnGuestDisconnectionCompletion(OperationType::HostMirroring, OperationStatus::Succeeded, guestConnectInfo->interfaceGuid, guestConnectInfo->ssid);
+        OnGuestDisconnectionCompletion(
+            OperationType::HostMirroring, OperationStatus::Succeeded, guestConnectInfo->interfaceGuid, guestConnectInfo->ssid);
         return DisconnectResponse{};
     }
-
 
     // At this point, an host interface will be disconnected. Notify the client (make sure it is notified of the completion on each path)
     OnGuestDisconnectionRequest(OperationType::GuestDirected, m_guestConnection->ssid);
@@ -387,7 +407,8 @@ DisconnectResponse OperationHandler::HandleDisconnectRequestSerialized(const Dis
         const auto guestConnectInfo = m_guestConnection;
         m_guestConnection.reset();
 
-        OnGuestDisconnectionCompletion(OperationType::GuestDirected, OperationStatus::Succeeded, guestConnectInfo->interfaceGuid, guestConnectInfo->ssid);
+        OnGuestDisconnectionCompletion(
+            OperationType::GuestDirected, OperationStatus::Succeeded, guestConnectInfo->interfaceGuid, guestConnectInfo->ssid);
         return DisconnectResponse{};
     };
 

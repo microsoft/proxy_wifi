@@ -52,8 +52,9 @@ public:
 /// @brief Indicate the status of a guest initiated operation
 enum class OperationStatus
 {
-    Succeeded,
-    Failed
+    Succeeded, ///< The operation was completed successfully and success will be indicated to the guest
+    Failed,    ///< The operation failed and failure will be indicated to the guest
+    Denied     ///< The operation was denied by the client and failure will be indicated to the guest
 };
 
 /// @brief List basic information about a Wi-Fi network
@@ -64,26 +65,6 @@ struct WifiNetworkInfo
 
     DOT11_SSID ssid = {};
     DOT11_MAC_ADDRESS bssid = {};
-};
-
-/// @brief Package the argugments for the `OnConnection` callback
-struct OnConnectionArgs {
-    /// The host interface that connected
-    GUID interfaceGuid{};
-    /// The ssid of the connected network
-    DOT11_SSID connectedNetwork{};
-    /// The authentication algorithm of the connected network, for host connections
-    /// Remarks: This is the auth algo that is reported to the guest in scan results,
-    /// it might differ from the actual auth algo used by the host
-    DOT11_AUTH_ALGORITHM authAlgo{DOT11_AUTH_ALGO_80211_OPEN};
-};
-
-/// @brief Package the argugments for the `OnDisconnection` callback
-struct OnDisconnectionArgs {
-    /// The host interface that disconnected
-    GUID interfaceGuid{};
-    /// The ssid of the disconnected network
-    DOT11_SSID disconnectedNetwork{};
 };
 
 /// @brief Indicate the impact a guest requested operation will have on the host
@@ -100,23 +81,34 @@ class ProxyWifiObserver
 public:
     virtual ~ProxyWifiObserver() = default;
 
-    struct ConnectRequestArgs {
+    struct ConnectRequestArgs
+    {
         DOT11_SSID ssid;
     };
 
-    struct ConnectCompleteArgs {
+    struct ConnectCompleteArgs
+    {
         GUID interfaceGuid;
         DOT11_SSID ssid;
         DOT11_AUTH_ALGORITHM authAlgo;
     };
 
-    struct DisconnectRequestArgs {
+    struct DisconnectRequestArgs
+    {
         DOT11_SSID ssid;
     };
 
-    struct DisconnectCompleteArgs {
+    struct DisconnectCompleteArgs
+    {
         GUID interfaceGuid;
         DOT11_SSID ssid;
+    };
+
+    /// @brief Indicate whether proxy_wifi should proceed with a guest request or answer immediately with a failure
+    enum class Authorization
+    {
+        Approve,
+        Deny
     };
 
     /// @brief An host WiFi interface connected to a network
@@ -130,30 +122,31 @@ public:
     }
 
     /// @brief The guest requested a connection to a network
-    /// If `type == OperationType::HostMirroring`, an host inteface is already connected to the network, otherwise, one will be
-    /// connected The connection won't proceed until the callback returns
-    virtual void OnGuestConnectionRequest(OperationType /* type */, const ConnectRequestArgs& /* connectionInfo */) noexcept
+    /// @return Return `Authorization::Approve` to let the connection proceed, return `Authorization::Deny` to answer to the guest
+    /// with a failure If `type == OperationType::HostMirroring`, an host inteface is already connected to the network, otherwise,
+    /// one will be connected. The connection won't proceed until the callback returns
+    virtual Authorization AuthorizeGuestConnectionRequest(OperationType /* type */, const ConnectRequestArgs& /* connectionInfo */) noexcept
     {
+        return Authorization::Approve;
     }
 
     /// @brief A guest connection request was processed
-    /// If `type == OperationType::HostMirroring`, an host inteface was already connected to the network, otherwise, one has been be connected
-    /// The response won't be sent to the guest until this callback returns
-    virtual void OnGuestConnectionCompletion(
-        OperationType /* type */, OperationStatus /* status */, const ConnectCompleteArgs& /* connectionInfo */) noexcept
+    /// If `type == OperationType::HostMirroring`, an host inteface was already connected to the network, otherwise, one has been
+    /// be connected The response won't be sent to the guest until this callback returns
+    virtual void OnGuestConnectionCompletion(OperationType /* type */, OperationStatus /* status */, const ConnectCompleteArgs& /* connectionInfo */) noexcept
     {
     }
 
     /// @brief The guest requested a disconnection from the connected network
-    /// If `type == OperationType::HostMirroring`, the host won't be impacted, otherwise, a matching host interface will be disconnected
-    /// The disconnection won't proceed until the callback returns
+    /// If `type == OperationType::HostMirroring`, the host won't be impacted, otherwise, a matching host interface will be
+    /// disconnected The disconnection won't proceed until the callback returns
     virtual void OnGuestDisconnectionRequest(OperationType /* type */, const DisconnectRequestArgs& /* connectionInfo */) noexcept
     {
     }
 
     /// @brief A guest disconnection request was processed
-    /// If `type == OperationType::HostMirroring`, this was a no-op for the host, otherwise, a matching host interface has been disconnected
-    /// The response won't be sent to the guest until this callback returns
+    /// If `type == OperationType::HostMirroring`, this was a no-op for the host, otherwise, a matching host interface has been
+    /// disconnected The response won't be sent to the guest until this callback returns
     virtual void OnGuestDisconnectionCompletion(OperationType /* type */, OperationStatus /* status */, const DisconnectCompleteArgs& /* disconnectionInfo */) noexcept
     {
     }
