@@ -253,7 +253,7 @@ ConnectResponse OperationHandler::HandleConnectRequestSerialized(const ConnectRe
     {
         // No interface to connect with: fails directly
         Log::Trace(L"No interfaces are present");
-        return ConnectResponse{WlanStatus::UnspecifiedFailure, connectRequest->bssid, m_sessionId};
+        return ConnectResponse{WlanStatus::UnspecifiedFailure, connectRequest->bssid, ++m_sessionId};
     }
 
     for (const auto& wlanIntf : m_wlanInterfaces)
