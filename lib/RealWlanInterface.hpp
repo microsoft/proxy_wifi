@@ -53,7 +53,7 @@ private:
     std::optional<std::promise<std::pair<WlanStatus, ConnectedNetwork>>> m_connectPromise;
     std::optional<std::promise<void>> m_disconnectPromise;
     std::optional<std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>>> m_scanPromise;
-    /// @brief Indicate a scan was requested to wlansvc and no completion notif was recieved yet
+    /// @brief Indicate a scan was requested to wlansvc and no completion notif was received yet
     bool m_scanRunning = false;
 
     mutable std::mutex m_notifMutex;
