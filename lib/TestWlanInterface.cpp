@@ -154,7 +154,7 @@ std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> TestWlanInterface::S
 
         if (m_scanBehavior == ScanBehavior::Async)
         {
-            // Only report the first network in the imediate answer of an async scan
+            // Only report the first network in the immediate answer of an async scan
             break;
         }
     }

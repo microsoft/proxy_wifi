@@ -30,7 +30,7 @@ public:
     /// @brief Must be called by the interfaces when the signal quality changes
     virtual void OnHostSignalQualityChange(const GUID& interfaceGuid, unsigned long signalQuality) = 0;
 
-    /// @brief Must be called by the interfaces when scan results are availables
+    /// @brief Must be called by the interfaces when scan results are available
     virtual void OnHostScanResults(const GUID& interfaceGuid, const std::vector<ScannedBss>& scannedBss, ScanStatus status) = 0;
 };
 
