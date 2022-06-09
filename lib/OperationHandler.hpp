@@ -70,7 +70,7 @@ protected:
     void OnHostDisconnection(const GUID& interfaceGuid, const Ssid& ssid) override;
     /// @brief Must be called by the interfaces when the signal quality changes
     void OnHostSignalQualityChange(const GUID& interfaceGuid, unsigned long signalQuality) override;
-    /// @brief Must be called by the interfaces when scan results are availables
+    /// @brief Must be called by the interfaces when scan results are available
     void OnHostScanResults(const GUID& interfaceGuid, const std::vector<ScannedBss>& scannedBss, ScanStatus status) override;
 
 private:

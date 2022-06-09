@@ -110,6 +110,7 @@ void Transport::QueueNotification(Message&& msg)
     if (!m_guestWasPresent)
     {
         Log::Trace(L"Dropping a notification: no guest request have been received, it might not be ready yet");
+        return;
     }
 
     m_notifQueue.Submit([this, n = std::move(msg)]() noexcept {

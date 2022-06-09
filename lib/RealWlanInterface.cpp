@@ -314,7 +314,7 @@ void RealWlanInterface::OnDisconnected(const WLAN_CONNECTION_NOTIFICATION_DATA& 
     }
 }
 
-std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> RealWlanInterface::Scan(std::optional<const Ssid>& ssid)
+std::future<IWlanInterface::ScanResult> RealWlanInterface::Scan(std::optional<const Ssid>& ssid)
 {
     std::unique_lock scanLock(m_promiseMutex);
     if (m_scanRunning)
@@ -362,7 +362,7 @@ std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> RealWlanInterface::S
     // will wait for the real scan completion, or the new results will be sent through a notification
     Log::Trace(L"Reporting cached scan results on interface %ws", GuidToString(m_interfaceGuid).c_str());
 
-    std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>> promise;
+    std::promise<ScanResult> promise;
     promise.set_value({std::move(scannedBss), ScanStatus::Completed});
     return promise.get_future();
 }

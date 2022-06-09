@@ -135,7 +135,7 @@ std::future<void> TestWlanInterface::Disconnect()
     return promise.get_future();
 }
 
-std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> TestWlanInterface::Scan(std::optional<const Ssid>&)
+std::future<IWlanInterface::ScanResult> TestWlanInterface::Scan(std::optional<const Ssid>&)
 {
     std::vector<ScannedBss> result;
     for (const auto& fakeBss : m_networks)
@@ -160,7 +160,7 @@ std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> TestWlanInterface::S
     }
 
     Log::Debug(L"%d BSS entries reported on test interface %ws", result.size(), GuidToString(m_interfaceGuid).c_str());
-    std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>> promise;
+    std::promise<ScanResult> promise;
     promise.set_value({std::move(result), m_scanBehavior == ScanBehavior::Async ? ScanStatus::Running : ScanStatus::Completed});
     return promise.get_future();
 }

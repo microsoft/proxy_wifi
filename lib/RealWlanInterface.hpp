@@ -37,7 +37,7 @@ public:
 
     std::future<std::pair<WlanStatus, ConnectedNetwork>> Connect(const Ssid& requestedSsid, const Bssid& bssid, const WlanSecurity& securityInfo) override;
     std::future<void> Disconnect() override;
-    std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> Scan(std::optional<const Ssid>& ssid) override;
+    std::future<ScanResult> Scan(std::optional<const Ssid>& ssid) override;
 
 private:
     void WlanNotificationHandler(const WLAN_NOTIFICATION_DATA& notification) noexcept;
@@ -49,10 +49,11 @@ private:
     const std::shared_ptr<Wlansvc::WlanApiWrapper> m_wlansvc;
     const GUID m_interfaceGuid;
 
+    /// @brief Mutex to protect access to the following promises + m_scanRunning
     mutable std::mutex m_promiseMutex;
     std::optional<std::promise<std::pair<WlanStatus, ConnectedNetwork>>> m_connectPromise;
     std::optional<std::promise<void>> m_disconnectPromise;
-    std::optional<std::promise<std::pair<std::vector<ScannedBss>, ScanStatus>>> m_scanPromise;
+    std::optional<std::promise<ScanResult>> m_scanPromise;
     /// @brief Indicate a scan was requested to wlansvc and no completion notif was received yet
     bool m_scanRunning = false;
 

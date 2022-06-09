@@ -63,10 +63,15 @@ public:
     /// @return A future indicating when the disconnection is complete
     virtual std::future<void> Disconnect() = 0;
 
+    struct ScanResult
+    {
+        std::vector<ScannedBss> bssList;
+        ScanStatus status{ScanStatus::Completed};
+    };
     /// @brief Request that the interface schedule a scan
     /// @param ssid The if present, request a targeted scan on this ssid (needed to scan hidden networks)
     /// @return A future containing the current scan results, and whether the scan is still running
-    virtual std::future<std::pair<std::vector<ScannedBss>, ScanStatus>> Scan(std::optional<const Ssid>& ssid) = 0;
+    virtual std::future<ScanResult> Scan(std::optional<const Ssid>& ssid) = 0;
 };
 
 

@@ -474,7 +474,7 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
         scanRequest->ssid_len > 0 ? std::make_optional<const Ssid>(gsl::span{scanRequest->ssid, scanRequest->ssid_len}) : std::nullopt;
 
     // Start all scan requests
-    using FutureScanResult = std::future<std::pair<std::vector<ScannedBss>, ScanStatus>>;
+    using FutureScanResult = std::future<IWlanInterface::ScanResult>;
     std::vector<std::pair<GUID, FutureScanResult>> futureScanResults;
     for (const auto& wlanIntf : m_wlanInterfaces)
     {
@@ -492,24 +492,25 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
     {
         try
         {
-            std::vector<ScannedBss> scanResults;
-            auto status = ScanStatus::Completed;
+            IWlanInterface::ScanResult scanResult;
             if (scanFuture.wait_until(timeout) != std::future_status::ready)
             {
+                // Consider the scan timed out and we won't get an answer
+                // (neither "running" or "completed") for this interface
                 LOG_WIN32_MSG(ERROR_TIMEOUT, "Scan timed out.");
             }
             else
             {
-                std::tie(scanResults, status) = scanFuture.get();
+                scanResult = scanFuture.get();
             }
 
-            if (status == ScanStatus::Running)
+            if (scanResult.status == ScanStatus::Running)
             {
                 Log::Trace(L"Scan pending on interface %ws.", GuidToString(intfGuid).c_str());
                 m_scanningInterfaces.insert(intfGuid);
             }
 
-            for (const auto& bss : scanResults)
+            for (const auto& bss : scanResult.bssList)
             {
                 scanResponse.AddBss(bss);
             }
