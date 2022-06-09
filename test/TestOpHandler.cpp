@@ -661,7 +661,7 @@ TEST_CASE("The client can approve or deny guest connection requests", "[wlansvcO
     {
         pObserver->authorizeToConnect = ProxyWifiObserver::Authorization::Approve;
         auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
-        opHandler->DrainClientNotifications();
+        opHandler->DrainWorkqueues();
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::Success));
         CHECK(pObserver->lastOperationStatus == OperationStatus::Succeeded);
     }
@@ -670,7 +670,7 @@ TEST_CASE("The client can approve or deny guest connection requests", "[wlansvcO
     {
         pObserver->authorizeToConnect = ProxyWifiObserver::Authorization::Deny;
         auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
-        opHandler->DrainClientNotifications();
+        opHandler->DrainWorkqueues();
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::UnspecifiedFailure));
         CHECK(pObserver->lastOperationStatus == OperationStatus::Denied);
     }
@@ -681,10 +681,10 @@ TEST_CASE("The client can approve or deny guest connection requests", "[wlansvcO
 
         fakeWlansvc->ConnectHost(Mock::c_intf1, Mock::c_openNetwork.bss.ssid);
         fakeWlansvc->WaitForNotifComplete();
-        opHandler->DrainClientNotifications();
+        opHandler->DrainWorkqueues();
 
         auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
-        opHandler->DrainClientNotifications();
+        opHandler->DrainWorkqueues();
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::Success));
         CHECK(pObserver->lastOperationStatus == OperationStatus::Succeeded);
     }
@@ -695,10 +695,10 @@ TEST_CASE("The client can approve or deny guest connection requests", "[wlansvcO
 
         fakeWlansvc->ConnectHost(Mock::c_intf1, Mock::c_openNetwork.bss.ssid);
         fakeWlansvc->WaitForNotifComplete();
-        opHandler->DrainClientNotifications();
+        opHandler->DrainWorkqueues();
 
         auto connectResponse = opHandler->HandleConnectRequest(connectRequest);
-        opHandler->DrainClientNotifications();
+        opHandler->DrainWorkqueues();
         CHECK(connectResponse->result_code == WI_EnumValue(WlanStatus::UnspecifiedFailure));
         CHECK(pObserver->lastOperationStatus == OperationStatus::Denied);
     }
