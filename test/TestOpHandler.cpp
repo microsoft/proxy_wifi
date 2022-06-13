@@ -150,6 +150,8 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
             reinterpret_cast<uint8_t*>(&scanResponse->bss[0]) + scanResponse->bss[0].ie_offset, scanResponse->bss[0].ie_size};
         CHECK(std::search(ie.begin(), ie.end(), ssid.value().begin(), ssid.value().end()) != ie.end());
         CHECK(std::search(ie.begin(), ie.end(), Mock::c_wpa2pskRsnIe.begin(), Mock::c_wpa2pskRsnIe.end()) != ie.end());
+        // Client networks are simulated using 5GHz
+        CHECK(scanResponse->bss[0].channel_center_freq == 5240000);
     }
 }
 
