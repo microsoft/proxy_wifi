@@ -16,7 +16,7 @@ struct FakeBss
 {
     BssCapability capabilities = BssCapability::Ess;
     int32_t rssi = -50;
-    uint32_t channelCenterFreq = 2432000; // 2.4GHz by default
+    uint32_t channelCenterFreq = 5240000; // 5GHz by default
     uint16_t beaconInterval = 0;
     Bssid bssid{};
     Ssid ssid;
@@ -43,7 +43,7 @@ struct ScannedBss
     Ssid ssid;
     uint16_t capabilities = 0;
     int32_t rssi = -50;
-    uint32_t channelCenterFreq = 2432000; // 2.4GHz by default
+    uint32_t channelCenterFreq = 5240000; // 5GHz by default
     uint16_t beaconInterval = 0;
     std::vector<uint8_t> ies;
 };
