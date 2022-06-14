@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <set>
 #include <shared_mutex>
 #include <variant>
 #include <vector>
@@ -53,13 +54,13 @@ public:
     DisconnectResponse HandleDisconnectRequest(const DisconnectRequest& disconnectRequest);
     ScanResponse HandleScanRequest(const ScanRequest& scanRequest);
 
-    using GuestNotificationCallback = std::function<void(std::variant<DisconnectNotif, SignalQualityNotif>)>;
-    void RegisterGuestNotificationCallback(GuestNotificationCallback notificationCallback);
+    using GuestNotificationTypes = std::variant<DisconnectNotif, SignalQualityNotif, ScanResponse>;
+    void RegisterGuestNotificationCallback(std::function<void(GuestNotificationTypes)> notificationCallback);
     void ClearGuestNotificationCallback();
 
     /// @brief Wait all client notifications have been processed and return
     /// Unit test helper
-    void DrainClientNotifications();
+    void DrainWorkqueues();
 
 protected:
 
@@ -69,6 +70,8 @@ protected:
     void OnHostDisconnection(const GUID& interfaceGuid, const Ssid& ssid) override;
     /// @brief Must be called by the interfaces when the signal quality changes
     void OnHostSignalQualityChange(const GUID& interfaceGuid, unsigned long signalQuality) override;
+    /// @brief Must be called by the interfaces when scan results are available
+    void OnHostScanResults(const GUID& interfaceGuid, const std::vector<ScannedBss>& scannedBss, ScanStatus status) override;
 
 private:
 
@@ -78,7 +81,7 @@ private:
     ScanResponse HandleScanRequestSerialized(const ScanRequest& scanRequest);
 
     /// @brief Send a notification to the guest
-    void SendGuestNotification(std::variant<DisconnectNotif, SignalQualityNotif> notif);
+    void SendGuestNotification(GuestNotificationTypes notif);
 
     /// @brief Notify the guest of guest operation request and completion
     ProxyWifiObserver::Authorization AuthorizeGuestConnectionRequest(OperationType type, const Ssid& ssid) noexcept;
@@ -89,7 +92,7 @@ private:
     void OnGuestScanCompletion(OperationStatus status) noexcept;
 
     std::shared_mutex m_notificationLock;
-    GuestNotificationCallback m_notificationCallback;
+    std::function<void(GuestNotificationTypes)> m_notificationCallback;
 
     /// @brief Client provided object to notify client of various events
     ProxyWifiObserver* m_pClientObserver = nullptr;
@@ -120,6 +123,9 @@ private:
     /// 4) Guest process disconnect notif (blocked in queue while connect request pending)
     /// 5) Session ID is expired, prevent the disconnection in the guest
     std::atomic<uint64_t> m_sessionId{};
+
+    /// @brief Set of interfaces currently executing a scan
+    std::set<GUID> m_scanningInterfaces;
 
     std::vector<std::unique_ptr<IWlanInterface>> m_wlanInterfaces;
 

@@ -7,6 +7,7 @@
 #include <wlanapi.h>
 
 #include <future>
+#include <mutex>
 #include <optional>
 
 #include "Networks.hpp"
@@ -36,8 +37,7 @@ public:
 
     std::future<std::pair<WlanStatus, ConnectedNetwork>> Connect(const Ssid& requestedSsid, const Bssid& bssid, const WlanSecurity& securityInfo) override;
     std::future<void> Disconnect() override;
-    std::future<std::vector<ScannedBss>> Scan(std::optional<const Ssid>& ssid) override;
-
+    std::future<ScanResult> Scan(std::optional<const Ssid>& ssid) override;
 
 private:
     void WlanNotificationHandler(const WLAN_NOTIFICATION_DATA& notification) noexcept;
@@ -49,19 +49,20 @@ private:
     const std::shared_ptr<Wlansvc::WlanApiWrapper> m_wlansvc;
     const GUID m_interfaceGuid;
 
-    std::mutex m_promiseMutex;
+    /// @brief Mutex to protect access to the following promises + m_scanRunning
+    mutable std::mutex m_promiseMutex;
     std::optional<std::promise<std::pair<WlanStatus, ConnectedNetwork>>> m_connectPromise;
     std::optional<std::promise<void>> m_disconnectPromise;
-    std::optional<std::promise<std::vector<ScannedBss>>> m_scanPromise;
+    std::optional<std::promise<ScanResult>> m_scanPromise;
+    /// @brief Indicate a scan was requested to wlansvc and no completion notif was received yet
+    bool m_scanRunning = false;
 
-    std::mutex m_cachedResultsMutex;
-    std::vector<ScannedBss> m_cachedScannedBss;
-    std::vector<WLAN_AVAILABLE_NETWORK> m_cachedScannedNetworks;
-
+    mutable std::mutex m_notifMutex;
     INotificationHandler* m_notifCallback{};
 
     inline void NotifyHostConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostConnection(m_interfaceGuid, ssid, authAlgo);
@@ -70,6 +71,7 @@ private:
 
     inline void NotifyHostDisconnection(const Ssid& ssid) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostDisconnection(m_interfaceGuid, ssid);
@@ -78,9 +80,19 @@ private:
 
     inline void NotifySignalQualityChange(unsigned long signal) const
     {
+        auto lock = std::scoped_lock(m_notifMutex);
         if (m_notifCallback)
         {
             m_notifCallback->OnHostSignalQualityChange(m_interfaceGuid, signal);
+        }
+    }
+
+    inline void NotifyScanResults(std::vector<ScannedBss> scannedBss, ScanStatus status) const
+    {
+        auto lock = std::scoped_lock(m_notifMutex);
+        if (m_notifCallback)
+        {
+            m_notifCallback->OnHostScanResults(m_interfaceGuid, scannedBss, status);
         }
     }
 };

@@ -264,12 +264,13 @@ public:
 class ScanResponse : public StructuredBuffer<proxy_wifi_scan_response, WIFI_OP_SCAN_RESPONSE>
 {
 public:
-    ScanResponse(size_t totalSize, size_t numBss)
+    ScanResponse(size_t totalSize, size_t numBss, bool scanComplete)
         : StructuredBuffer{totalSize},
           m_ies{AsBytes().subspan(sizeof(proxy_wifi_scan_response) + numBss * sizeof(proxy_wifi_bss))}
     {
         get()->total_size = wil::safe_cast<uint32_t>(totalSize);
         get()->num_bss = wil::safe_cast<uint32_t>(numBss);
+        get()->scan_complete = scanComplete;
     }
 
     gsl::span<uint8_t> getIes() const
@@ -279,7 +280,8 @@ public:
 
     std::wstring Describe() const
     {
-        return L"Scan response, Number of reported Bss: " + std::to_wstring(get()->num_bss) + L", Total size " +
+        return L"Scan response, Scan complete: " + std::wstring(get()->scan_complete ? L"true" : L"false") +
+               L", Number of reported Bss: " + std::to_wstring(get()->num_bss) + L", Total size " +
                std::to_wstring(get()->total_size) + L" bytes";
     }
 
@@ -296,9 +298,11 @@ class ScanResponseBuilder
 public:
     void AddBss(ScannedBss bss);
     ScanResponse Build() const;
+    void SetScanComplete(bool isComplete) noexcept;
 
 private:
     bool IsBssAlreadyPresent(const Bssid& bssid);
+    bool m_scanComplete = false;
     std::vector<ScannedBss> m_bssList;
 };
 

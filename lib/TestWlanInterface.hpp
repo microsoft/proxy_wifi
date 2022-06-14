@@ -27,7 +27,7 @@ public:
     std::optional<ConnectedNetwork> IsConnectedTo(const Ssid& requestedSsid) noexcept override;
     std::future<std::pair<WlanStatus, ConnectedNetwork>> Connect(const Ssid& requestedSsid, const Bssid& bssid, const WlanSecurity& securityInfo) override;
     std::future<void> Disconnect() override;
-    std::future<std::vector<ScannedBss>> Scan(std::optional<const Ssid>& ssid) override;
+    std::future<IWlanInterface::ScanResult> Scan(std::optional<const Ssid>& ssid) override;
 
 private:
     static std::vector<FakeBss> BuildFakeNetworkList();
@@ -39,6 +39,11 @@ private:
     std::optional<size_t> m_connectedNetwork;
 
     INotificationHandler* m_notifCallback{};
+    enum class ScanBehavior
+    {
+        Sync,
+        Async
+    } m_scanBehavior = ScanBehavior::Sync;
 
     inline void NotifyConnection(const Ssid& ssid, DOT11_AUTH_ALGORITHM authAlgo) const
     {
@@ -61,6 +66,14 @@ private:
         if (m_notifCallback)
         {
             m_notifCallback->OnHostSignalQualityChange(m_interfaceGuid, signal);
+        }
+    }
+
+    inline void NotifyScanResults(std::vector<ScannedBss> result, ScanStatus status) const
+    {
+        if (m_notifCallback)
+        {
+            m_notifCallback->OnHostScanResults(m_interfaceGuid, result, status);
         }
     }
 };

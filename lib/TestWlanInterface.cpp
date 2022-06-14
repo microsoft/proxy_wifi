@@ -135,7 +135,7 @@ std::future<void> TestWlanInterface::Disconnect()
     return promise.get_future();
 }
 
-std::future<std::vector<ScannedBss>> TestWlanInterface::Scan(std::optional<const Ssid>&)
+std::future<IWlanInterface::ScanResult> TestWlanInterface::Scan(std::optional<const Ssid>&)
 {
     std::vector<ScannedBss> result;
     for (const auto& fakeBss : m_networks)
@@ -151,11 +151,17 @@ std::future<std::vector<ScannedBss>> TestWlanInterface::Scan(std::optional<const
             fakeBss.channelCenterFreq);
 
         result.emplace_back(fakeBss);
+
+        if (m_scanBehavior == ScanBehavior::Async)
+        {
+            // Only report the first network in the immediate answer of an async scan
+            break;
+        }
     }
 
-    std::promise<std::vector<ScannedBss>> promise;
     Log::Debug(L"%d BSS entries reported on test interface %ws", result.size(), GuidToString(m_interfaceGuid).c_str());
-    promise.set_value(result);
+    std::promise<ScanResult> promise;
+    promise.set_value({std::move(result), m_scanBehavior == ScanBehavior::Async ? ScanStatus::Running : ScanStatus::Completed});
     return promise.get_future();
 }
 
@@ -166,18 +172,24 @@ void TestWlanInterface::NotificationSender()
         ConnectedOpen,
         ConnectedPsk,
         Disconnected,
-        SignalQuality
+        SignalQuality,
+        ScanResults,
+        ScanSync,
+        ScanAsync
     };
 
-    static const std::array<std::pair<Notification, std::string>, 4> notifications{
-        {{Notification::Disconnected, "Disconnected"},
-         {Notification::ConnectedOpen, "Connected Open"},
-         {Notification::ConnectedPsk, "Connected Psk"},
-         {Notification::SignalQuality, "Signal quality"}}};
+    static const std::array<std::pair<Notification, std::string>, 7> notifications{
+        {{Notification::Disconnected, "Host Disconnected"},
+         {Notification::ConnectedOpen, "Host Connected Open"},
+         {Notification::ConnectedPsk, "Host Connected Psk"},
+         {Notification::SignalQuality, "Signal quality"},
+         {Notification::ScanResults, "Notify Scan results"},
+         {Notification::ScanSync, "Scan Mode: Sync"},
+         {Notification::ScanAsync, "Scan Mode: Async"}}};
 
     for (;;)
     {
-        std::cout << ">>> Enter a value to send a notification: ";
+        std::cout << ">>> Choose what to do: ";
         for (auto i = 0u; i < notifications.size(); ++i)
         {
             std::cout << "<" << i << " -> " << notifications[i].second << "> ";
@@ -188,11 +200,11 @@ void TestWlanInterface::NotificationSender()
         std::cin >> userInput;
         if (userInput >= notifications.size())
         {
-            std::cout << "Invalid notification code: " << userInput << std::endl;
+            std::cout << "Invalid operation code: " << userInput << std::endl;
             continue;
         }
 
-        std::cout << "Sending notification " << notifications[userInput].second << std::endl;
+        std::cout << "Executing: " << notifications[userInput].second << std::endl;
 
         switch (notifications[userInput].first)
         {
@@ -226,6 +238,32 @@ void TestWlanInterface::NotificationSender()
             NotifySignalQualityChange(60);
             break;
         }
+        case Notification::ScanResults:
+        {
+            std::vector<ScannedBss> result;
+            for (const auto& fakeBss : m_networks)
+            {
+                Log::Debug(
+                    L"Reporting fake BSS, Bssid: %ws, Ssid: %ws, AkmSuites: {%ws}, CipherSuites: {%ws}, GroupCipher: %.8x, "
+                    L"ChannelCenterFreq: %d",
+                    BssidToString(fakeBss.bssid).c_str(),
+                    SsidToLogString(fakeBss.ssid.value()).c_str(),
+                    ListEnumToHexString(gsl::span{fakeBss.akmSuites}).c_str(),
+                    ListEnumToHexString(gsl::span{fakeBss.cipherSuites}).c_str(),
+                    fakeBss.groupCipher ? WI_EnumValue(*fakeBss.groupCipher) : 0,
+                    fakeBss.channelCenterFreq);
+
+                result.emplace_back(fakeBss);
+            }
+            NotifyScanResults(result, ScanStatus::Completed);
+            break;
+        }
+        case Notification::ScanSync:
+            m_scanBehavior = ScanBehavior::Sync;
+            break;
+        case Notification::ScanAsync:
+            m_scanBehavior = ScanBehavior::Async;
+            break;
         default:
             throw std::runtime_error("Unsupported notification");
         }
