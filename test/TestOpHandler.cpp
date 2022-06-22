@@ -1020,6 +1020,68 @@ TEST_CASE("Ignore notification from other interfaces", "[wlansvcOpHandler][multi
     }
 }
 
+
+TEST_CASE("Notify guest on spontaneous scan completion", "[wlansvcOpHandler]")
+{
+    auto body = std::vector<uint8_t>(sizeof(proxy_wifi_scan_request));
+
+    auto fakeWlansvc =
+        std::make_shared<Mock::WlanSvcFake>(std::vector{Mock::c_intf1}, std::vector{Mock::c_wpa2PskNetwork});
+    // This network won't be cached by the interface until a scan
+    fakeWlansvc->AddNetwork(Mock::c_openNetwork);
+    auto opHandler = MakeUnitTestOperationHandler(fakeWlansvc);
+
+    ProxyWifi::OperationHandler::GuestNotificationTypes notif{SignalQualityNotif{42}};
+    auto notifSent = 0;
+    opHandler->RegisterGuestNotificationCallback([&](auto n) {
+        ++notifSent;
+        notif = n;
+    });
+
+    SECTION("Scan results are sent on spontaneous host scan completion")
+    {
+        fakeWlansvc->ScanHost(Mock::c_intf1);
+        fakeWlansvc->WaitForNotifComplete();
+        opHandler->DrainWorkqueues();
+        CHECK(notifSent == 1);
+        REQUIRE(std::holds_alternative<ScanResponse>(notif));
+        const auto& scanResponse = std::get<ScanResponse>(notif);
+
+        REQUIRE(scanResponse->num_bss == 2);
+        CHECK(toBssid(scanResponse->bss[0].bssid) == Mock::c_wpa2PskNetwork.bss.bssid);
+        CHECK(toBssid(scanResponse->bss[1].bssid) == Mock::c_openNetwork.bss.bssid);
+    }
+
+    SECTION("Scan result notifications still work after a blocking scan requests")
+    {
+        // Send two scan request back to back, making sure the second arrives before the first
+        // gets to complete so it is blocking
+        fakeWlansvc->BlockNotifications(10 /* ms */);
+        auto scanResponse = opHandler->HandleScanRequest(ScanRequest{body});
+        CHECK(fakeWlansvc->callCount.scan == 1);
+
+        auto scanResponse2 = opHandler->HandleScanRequest(ScanRequest{std::move(body)});
+        fakeWlansvc->WaitForNotifComplete();
+        opHandler->DrainWorkqueues();
+
+        // First scan request returns the cached results
+        CHECK(scanResponse->num_bss == 1);
+        CHECK(scanResponse->scan_complete == 1);
+        CHECK(fakeWlansvc->callCount.scan == 1);
+
+        // The second request was blocking, got the fresh scan results and no notification was sent
+        CHECK(notifSent == 0);
+        CHECK(scanResponse2->num_bss == 2);
+        CHECK(scanResponse2->scan_complete == 1);
+
+        // Check a scan completion from the host still work after the blocking scan
+        fakeWlansvc->ScanHost(Mock::c_intf1);
+        fakeWlansvc->WaitForNotifComplete();
+        opHandler->DrainWorkqueues();
+        CHECK(notifSent == 1);
+    }
+}
+
 TEST_CASE("Notifications for fake networks use FakeInterfaceGuid", "[wlansvcOpHandler][clientNotification]")
 {
     const auto fakeWlansvc = std::make_shared<Mock::WlanSvcFake>();
