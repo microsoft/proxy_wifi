@@ -384,6 +384,7 @@ void RealWlanInterface::OnScanComplete()
         if (m_scanPromise)
         {
             m_scanPromise->set_value({std::move(results), ScanStatus::Completed});
+            m_scanPromise = std::nullopt;
             return;
         }
     }

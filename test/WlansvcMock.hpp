@@ -250,27 +250,7 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
     {
         callCount.scan++;
 
-        // Produce the union of two unsorted containers (quadratic) in parameter `b`
-        auto buildUnion =
-            [](const auto& a, auto& b, auto eq) {
-                std::ranges::copy_if(a, std::back_inserter(b), [&](const auto& ea) {
-                    return !std::ranges::any_of(b, [&](const auto& eb) {
-                        return eq(ea, eb);
-                    });
-                });
-            };
-
-        // Add visible networks to the interface
-        auto& intf = m_interfaces.at(interfaceGuid);
-        buildUnion(m_visibleNetworks, intf.m_visibleNetworks, [](const auto& n1, const auto& n2) {
-            return n1.bss.bssid == n2.bss.bssid;
-        });
-
-        // Send a notification to annonce the scan completion
-        SendWlansvcNotif(interfaceGuid, [interfaceGuid](const auto& send) {
-            WLAN_REASON_CODE rc = WLAN_REASON_CODE_SUCCESS;
-            send({WLAN_NOTIFICATION_SOURCE_ACM, wlan_notification_acm_scan_complete, interfaceGuid, sizeof rc, &rc});
-        });
+        ScanHost(interfaceGuid);
     }
 
     std::vector<ProxyWifi::ScannedBss> GetScannedBssList(const GUID& interfaceGuid) override
@@ -369,6 +349,31 @@ struct WlanSvcFake : public ProxyWifi::Wlansvc::WlanApiWrapper
         SendWlansvcNotif(interfaceGuid, [interfaceGuid, signalQuality](const auto& send) mutable {
             send(WLAN_NOTIFICATION_DATA{
                 WLAN_NOTIFICATION_SOURCE_MSM, wlan_notification_msm_signal_quality_change, interfaceGuid, sizeof signalQuality, &signalQuality});
+        });
+    }
+
+    void ScanHost(const GUID& interfaceGuid)
+    {
+        // Produce the union of two unsorted containers (quadratic) in parameter `b`
+        auto buildUnion =
+            [](const auto& a, auto& b, auto eq) {
+                std::ranges::copy_if(a, std::back_inserter(b), [&](const auto& ea) {
+                    return !std::ranges::any_of(b, [&](const auto& eb) {
+                        return eq(ea, eb);
+                    });
+                });
+            };
+
+        // Add visible networks to the interface
+        auto& intf = m_interfaces.at(interfaceGuid);
+        buildUnion(m_visibleNetworks, intf.m_visibleNetworks, [](const auto& n1, const auto& n2) {
+            return n1.bss.bssid == n2.bss.bssid;
+        });
+
+        // Send a notification to annonce the scan completion
+        SendWlansvcNotif(interfaceGuid, [interfaceGuid](const auto& send) {
+            WLAN_REASON_CODE rc = WLAN_REASON_CODE_SUCCESS;
+            send({WLAN_NOTIFICATION_SOURCE_ACM, wlan_notification_acm_scan_complete, interfaceGuid, sizeof rc, &rc});
         });
     }
 
