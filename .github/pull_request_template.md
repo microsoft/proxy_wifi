@@ -22,6 +22,6 @@ Describe any future work that is required as a result of this change.
 ### Checklist
 
 - [ ] All targets compile successfully
-- [ ] Changes have been formated with clang-format
+- [ ] Changes have been formatted with clang-format
 - [ ] Newly added code include doxygen-style comments
 - [ ] Unit tests are succeeding
