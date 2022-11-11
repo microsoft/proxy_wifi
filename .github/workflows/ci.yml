@@ -26,7 +26,7 @@ jobs:
             codeql: True
             sdk_version: 19041
 
-    name: build_${{matrix.arch}}_${{matrix.build_type}}
+    name: build_${{matrix.arch}}_${{matrix.build_type}}_${{matrix.sdk_version}}
 
     steps:
     - name: Checkout repository
