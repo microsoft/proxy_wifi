@@ -100,7 +100,7 @@ bool IsNullBssid(const DOT11_MAC_ADDRESS& bssid)
     return memcmp(&nullBssid, &bssid, sizeof(DOT11_MAC_ADDRESS)) == 0;
 }
 
-std::pair<DOT11_BSSID_LIST*, std::unique_ptr<uint8_t[]>> BuildBssidList(gsl::span<const DOT11_MAC_ADDRESS> bssids)
+std::pair<DOT11_BSSID_LIST*, std::unique_ptr<uint8_t[]>> BuildBssidList(std::span<const DOT11_MAC_ADDRESS> bssids)
 {
     auto buffer = std::make_unique<uint8_t[]>(sizeof(DOT11_BSSID_LIST) + bssids.size() * sizeof(DOT11_MAC_ADDRESS));
     auto* pBssidList = reinterpret_cast<DOT11_BSSID_LIST*>(buffer.get());
@@ -266,7 +266,7 @@ std::wstring ProfileNameFromSSID(const Ssid& ssid)
     }
 }
 
-std::wstring MakeConnectionProfile(const Ssid& ssid, DOT11_AUTH_CIPHER_PAIR authCipher, const gsl::span<const uint8_t>& key)
+std::wstring MakeConnectionProfile(const Ssid& ssid, DOT11_AUTH_CIPHER_PAIR authCipher, const std::span<const uint8_t>& key)
 {
     std::wostringstream profileXmlBuilder;
     profileXmlBuilder << L"<?xml version=\"1.0\"?>\r\n"
@@ -322,7 +322,7 @@ bool IsAuthCipherPairSupported(const std::pair<DOT11_AUTH_ALGORITHM, DOT11_CIPHE
 }
 
 namespace {
-std::vector<DOT11_CIPHER_ALGORITHM> ConvertCipherSuites(gsl::span<const CipherSuite> ciphers)
+std::vector<DOT11_CIPHER_ALGORITHM> ConvertCipherSuites(std::span<const CipherSuite> ciphers)
 {
     if (ciphers.empty())
     {
@@ -333,7 +333,7 @@ std::vector<DOT11_CIPHER_ALGORITHM> ConvertCipherSuites(gsl::span<const CipherSu
     return r;
 }
 
-constexpr DOT11_AUTH_ALGORITHM DetermineAuth(AuthAlgo auth, uint8_t wpaVersion, gsl::span<const AkmSuite> akms)
+constexpr DOT11_AUTH_ALGORITHM DetermineAuth(AuthAlgo auth, uint8_t wpaVersion, std::span<const AkmSuite> akms)
 {
     if (auth == AuthAlgo::OpenSystem)
     {

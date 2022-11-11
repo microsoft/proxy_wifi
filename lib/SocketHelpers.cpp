@@ -6,7 +6,7 @@
 #include <MSWSock.h>
 
 #include <memory>
-#include <gsl/span>
+#include <span>
 
 #include "ProxyWifi/Logs.hpp"
 
@@ -98,7 +98,7 @@ AcceptAsyncContext AcceptAsyncContext::Accept(const wil::unique_socket& listenSo
     return AcceptAsyncContext(std::move(acceptSocket), std::move(acceptEvent), std::move(buffer), std::move(overlapped));
 }
 
-static bool ReceiveBytes(const wil::unique_socket& socket, gsl::span<uint8_t> buffer)
+static bool ReceiveBytes(const wil::unique_socket& socket, std::span<uint8_t> buffer)
 {
     while (buffer.size_bytes() > 0)
     {
@@ -160,7 +160,7 @@ std::optional<Message> ReceiveProxyWifiMessage(const wil::unique_socket& socket)
     return message;
 }
 
-static void SendBytes(wil::unique_socket& socket, gsl::span<const uint8_t> dataToSend)
+static void SendBytes(wil::unique_socket& socket, std::span<const uint8_t> dataToSend)
 {
     while (dataToSend.size_bytes() > 0)
     {

@@ -12,20 +12,21 @@ on:
 jobs:
 
   build_analyze:
-    runs-on: windows-2019
+    runs-on: windows-2022
     strategy:
       fail-fast: False
       matrix:
         arch: [x64, arm64]
         build_type: [Debug, Release]
+        sdk_version: [19041, 22621]
       # Run unit tests and CodeQL analysis on x64Debug only
         include:
           - arch: x64
             build_type: Debug
-            test: True
             codeql: True
+            sdk_version: 19041
 
-    name: build_${{matrix.arch}}_${{matrix.build_type}}
+    name: build_${{matrix.arch}}_${{matrix.build_type}}_${{matrix.sdk_version}}
 
     steps:
     - name: Checkout repository
@@ -40,12 +41,12 @@ jobs:
     - name: Install Windows SDK
       uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
       with:
-        sdk-version: 19041
+        sdk-version: ${{ matrix.sdk_version }}
 
     - name: Build
       run: |
         mkdir build && pushd build
-        cmake -A ${{ matrix.arch }} -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
+        cmake -A ${{ matrix.arch }} -DCMAKE_SYSTEM_VERSION=10.0.${{ matrix.sdk_version }}.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
         cmake --build . --parallel --config ${{ matrix.build_type }}
         popd
 
@@ -61,7 +62,7 @@ jobs:
 
   run_unit_tests:
     needs: build_analyze
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - name: Download test artifact
       id: download

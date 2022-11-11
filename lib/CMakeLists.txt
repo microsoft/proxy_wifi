@@ -13,7 +13,6 @@ target_link_libraries(proxy-wifi
         Mswsock.lib
         Ws2_32.lib
     PRIVATE
-        GSL
         WIL
         proxy-wifi-util
 )

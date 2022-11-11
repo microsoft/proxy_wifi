@@ -8,6 +8,7 @@
 
 #include <sysinfoapi.h>
 
+#include <array>
 #include <chrono>
 using namespace std::chrono_literals;
 
@@ -59,12 +60,26 @@ TEST_CASE("ListEnumToHexString format correctly", "[stringUtils]")
         Peperoni
     };
 
-    CHECK(ListEnumToHexString(gsl::span{std::vector{Breakfast::Croissant, Breakfast::Chocolatine}}) == std::wstring(L"abc11100 def22200"));
-    CHECK(ListEnumToHexString(gsl::span{std::vector{Breakfast::Coffee}}) == std::wstring(L"abcdef00"));
-    CHECK(ListEnumToHexString(gsl::span{std::vector<Breakfast>{}}) == std::wstring(L""));
-
-    CHECK(ListEnumToHexString(gsl::span{std::vector{Pizza::Cheese}}, L"-", 4) == std::wstring(L"0000"));
-    CHECK(ListEnumToHexString(gsl::span{std::vector{Pizza::Peperoni, Pizza::Cheese}}, L"-", 4) == std::wstring(L"0001-0000"));
+    {
+        auto a = std::array{Breakfast::Croissant, Breakfast::Chocolatine};
+        CHECK(ListEnumToHexString(std::span(a)) == std::wstring(L"abc11100 def22200"));
+    }
+    {
+        auto v = std::vector{Breakfast::Coffee};
+        CHECK(ListEnumToHexString(std::span(v)) == std::wstring(L"abcdef00"));
+    }
+    {
+        auto a = std::vector<Breakfast>{};
+        CHECK(ListEnumToHexString(std::span(a)) == std::wstring(L""));
+    }
+    {
+        auto v = std::vector{Pizza::Cheese};
+        CHECK(ListEnumToHexString(std::span(v), L"-", 4) == std::wstring(L"0000"));
+    }
+    {
+        auto v = std::vector{Pizza::Peperoni, Pizza::Cheese};
+        CHECK(ListEnumToHexString(std::span(v), L"-", 4) == std::wstring(L"0001-0000"));
+    }
 }
 
 TEST_CASE("Dynamic function basic behavior works", "[dynamicFunction]")

@@ -5,8 +5,8 @@
 #include <codecvt>
 #include <iomanip>
 #include <locale>
+#include <span>
 #include <string>
-#include <gsl/span>
 #include <sstream>
 
 #include <Windows.h>
@@ -14,7 +14,7 @@
 
 /// @brief Allow to convert a buffer of bytes as a string of hexadecimal two-digit values
 /// @example [8, 10, 20] -> "080a14"
-inline static void AppendByteBufferAsHexString(std::wostringstream& stream, const gsl::span<const uint8_t>& byteBuffer)
+inline static void AppendByteBufferAsHexString(std::wostringstream& stream, const std::span<const uint8_t>& byteBuffer)
 {
     stream << std::hex << std::setfill(L'0');
     for (const auto& byte : byteBuffer)
@@ -24,7 +24,7 @@ inline static void AppendByteBufferAsHexString(std::wostringstream& stream, cons
     stream << std::dec << std::setfill(L' ');
 }
 
-inline static std::wstring ByteBufferToHexString(const gsl::span<const uint8_t>& byteBuffer)
+inline static std::wstring ByteBufferToHexString(const std::span<const uint8_t>& byteBuffer)
 {
     std::wostringstream stream;
     AppendByteBufferAsHexString(stream, byteBuffer);
@@ -59,7 +59,7 @@ inline static std::wstring GuidToString(const GUID& guid) noexcept
 
 /// @brief Convert a bssid to a string, as hexadecimal
 /// @example [216, 236, 94, 16, 126, 22] -> "d8:ec:5e:10:7e:16"
-inline static std::wstring BssidToString(const gsl::span<const uint8_t, 6> bssid)
+inline static std::wstring BssidToString(const std::span<const uint8_t, 6> bssid)
 {
     std::wostringstream stream;
     stream << std::hex << std::setfill(L'0');
@@ -76,7 +76,7 @@ inline static std::wstring BssidToString(const gsl::span<const uint8_t, 6> bssid
 /// @brief Convert a ssid to a string for *logging only*, with ASCII and hexadecimal representations
 /// If the ssid isn't an ascii string, invalid character will be replaced by '?'
 /// @example ['m', 'y', ' ', 'w', 'i', 'f', 'i'] -> "'my wifi' [226422226d792077696669]"
-inline static std::wstring SsidToLogString(const gsl::span<const uint8_t> ssid)
+inline static std::wstring SsidToLogString(const std::span<const uint8_t> ssid)
 {
     std::wostringstream stream;
     stream << L"'" << std::wstring{ssid.begin(), ssid.end()} << L"' [";
@@ -90,8 +90,8 @@ inline static std::wstring SsidToLogString(const gsl::span<const uint8_t> ssid)
     return stream.str();
 }
 
-template <class T, std::enable_if_t<std::is_enum_v<T>, int> = 1>
-inline static std::wstring ListEnumToHexString(const gsl::span<T> list, std::wstring_view sep = L" ", int width = 8)
+template <class T, std::size_t Extent, std::enable_if_t<std::is_enum_v<T>, int> = 1>
+inline static std::wstring ListEnumToHexString(const std::span<T, Extent> list, std::wstring_view sep = L" ", int width = 8)
 {
     if (list.empty())
     {

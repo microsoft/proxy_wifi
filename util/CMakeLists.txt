@@ -19,7 +19,6 @@ target_include_directories(proxy-wifi-util
 target_link_libraries(proxy-wifi-util
     INTERFACE
         rpcrt4.lib
-        GSL
         WIL
 )
 
