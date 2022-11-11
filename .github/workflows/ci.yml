@@ -18,11 +18,13 @@ jobs:
       matrix:
         arch: [x64, arm64]
         build_type: [Debug, Release]
+        sdk_version: [19041, 22621]
       # Run unit tests and CodeQL analysis on x64Debug only
         include:
           - arch: x64
             build_type: Debug
             codeql: True
+            sdk_version: 19041
 
     name: build_${{matrix.arch}}_${{matrix.build_type}}
 
@@ -39,12 +41,12 @@ jobs:
     - name: Install Windows SDK
       uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
       with:
-        sdk-version: 22621
+        sdk-version: ${{ matrix.sdk_version }}
 
     - name: Build
       run: |
         mkdir build && pushd build
-        cmake -A ${{ matrix.arch }} -DCMAKE_SYSTEM_VERSION=10.0.22621.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
+        cmake -A ${{ matrix.arch }} -DCMAKE_SYSTEM_VERSION=10.0.${{ matrix.sdk_version }}.0 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
         cmake --build . --parallel --config ${{ matrix.build_type }}
         popd
 
