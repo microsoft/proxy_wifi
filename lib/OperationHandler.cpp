@@ -3,7 +3,7 @@
 
 #include "OperationHandler.hpp"
 
-#include <gsl/span>
+#include <span>
 
 #include "GuidUtils.hpp"
 #include "ProxyWifi/Logs.hpp"
@@ -471,7 +471,7 @@ ScanResponse OperationHandler::HandleScanRequestSerialized(const ScanRequest& sc
     OnGuestScanRequest();
 
     auto requestedSsid =
-        scanRequest->ssid_len > 0 ? std::make_optional<const Ssid>(gsl::span{scanRequest->ssid, scanRequest->ssid_len}) : std::nullopt;
+        scanRequest->ssid_len > 0 ? std::make_optional<const Ssid>(std::span{scanRequest->ssid, scanRequest->ssid_len}) : std::nullopt;
 
     // Start all scan requests
     using FutureScanResult = std::future<IWlanInterface::ScanResult>;

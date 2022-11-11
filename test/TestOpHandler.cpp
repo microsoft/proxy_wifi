@@ -101,11 +101,11 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
         CHECK(Mock::c_openNetwork.bss.bssid == toBssid(scanResponse->bss[1].bssid));
 
         // The IE are correct
-        gsl::span<uint8_t> ie0{
+        std::span<uint8_t> ie0{
             reinterpret_cast<uint8_t*>(&scanResponse->bss[0]) + scanResponse->bss[0].ie_offset, scanResponse->bss[0].ie_size};
         CHECK(std::equal(ie0.begin(), ie0.end(), Mock::c_wpa2PskNetwork.bss.ies.begin(), Mock::c_wpa2PskNetwork.bss.ies.end()));
 
-        gsl::span<uint8_t> ie1{
+        std::span<uint8_t> ie1{
             reinterpret_cast<uint8_t*>(&scanResponse->bss[1]) + scanResponse->bss[1].ie_offset, scanResponse->bss[1].ie_size};
         CHECK(std::equal(ie1.begin(), ie1.end(), Mock::c_openNetwork.bss.ies.begin(), Mock::c_openNetwork.bss.ies.end()));
     }
@@ -125,7 +125,7 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
         CHECK(Mock::c_enterpriseNetwork.bss.bssid == toBssid(scanResponse->bss[0].bssid));
 
         // Check the ie are not the original ones, but are for a WPA2PSK network with the same SSID
-        gsl::span<uint8_t> ie{
+        std::span<uint8_t> ie{
             reinterpret_cast<uint8_t*>(&scanResponse->bss[0]) + scanResponse->bss[0].ie_offset, scanResponse->bss[0].ie_size};
         CHECK(!std::equal(ie.begin(), ie.end(), Mock::c_enterpriseNetwork.bss.ies.begin(), Mock::c_enterpriseNetwork.bss.ies.end()));
         CHECK(
@@ -156,7 +156,7 @@ TEST_CASE("Process a scan requests", "[wlansvcOpHandler]")
         CHECK(scanResponse->scan_complete == 1);
         CHECK(toBssid(bssid) == toBssid(scanResponse->bss[0].bssid));
         // Check the ie are not the original ones, but are for a WPA2PSK network with the same SSID
-        gsl::span<uint8_t> ie{
+        std::span<uint8_t> ie{
             reinterpret_cast<uint8_t*>(&scanResponse->bss[0]) + scanResponse->bss[0].ie_offset, scanResponse->bss[0].ie_size};
         CHECK(std::search(ie.begin(), ie.end(), ssid.value().begin(), ssid.value().end()) != ie.end());
         CHECK(std::search(ie.begin(), ie.end(), Mock::c_wpa2pskRsnIe.begin(), Mock::c_wpa2pskRsnIe.end()) != ie.end());
@@ -305,7 +305,7 @@ TEST_CASE("Handle scan on multiple interfaces", "[wlansvcOpHandler][multiInterfa
         CHECK(toBssid(scanResponse->bss[0].bssid) == Mock::c_wpa2PskNetwork.bss.bssid);
         CHECK(toBssid(scanResponse->bss[1].bssid) == Mock::c_openNetwork.bss.bssid);
         // Check the SSID correspond to the user provided network
-        gsl::span<uint8_t> ie{
+        std::span<uint8_t> ie{
             reinterpret_cast<uint8_t*>(&scanResponse->bss[0]) + scanResponse->bss[0].ie_offset, scanResponse->bss[0].ie_size};
         CHECK(std::search(ie.begin(), ie.end(), ssid.value().begin(), ssid.value().end()) != ie.end());
     }

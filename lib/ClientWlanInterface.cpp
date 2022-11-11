@@ -101,8 +101,8 @@ std::future<IWlanInterface::ScanResult> ClientWlanInterface::Scan(std::optional<
             L"ChannelCenterFreq: %d",
             BssidToString(fakeBss.bssid).c_str(),
             SsidToLogString(fakeBss.ssid.value()).c_str(),
-            ListEnumToHexString(gsl::span{fakeBss.akmSuites}).c_str(),
-            ListEnumToHexString(gsl::span{fakeBss.cipherSuites}).c_str(),
+            ListEnumToHexString(std::span{fakeBss.akmSuites}).c_str(),
+            ListEnumToHexString(std::span{fakeBss.cipherSuites}).c_str(),
             fakeBss.groupCipher ? WI_EnumValue(*fakeBss.groupCipher) : 0,
             fakeBss.channelCenterFreq);
 

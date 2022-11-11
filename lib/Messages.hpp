@@ -8,12 +8,12 @@
 #include <array>
 #include <algorithm>
 #include <cstdint>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <sstream>
 #include <vector>
 
-#include <gsl/span>
 #include <wil/safecast.h>
 
 #include "Iee80211Utils.hpp"
@@ -150,9 +150,9 @@ public:
         return get();
     }
 
-    gsl::span<uint8_t> AsBytes()
+    std::span<uint8_t> AsBytes()
     {
-        return gsl::span{m_buffer};
+        return std::span{m_buffer};
     }
 
     static Message ToMessage(StructuredBuffer&& buffer)
@@ -212,7 +212,7 @@ public:
 class ConnectResponse: public StructuredBuffer<proxy_wifi_connect_response, WIFI_OP_CONNECT_RESPONSE>
 {
 public:
-    ConnectResponse(WlanStatus resultCode, gsl::span<const uint8_t, c_wlan_bssid_len> bssid, uint64_t sessionId)
+    ConnectResponse(WlanStatus resultCode, std::span<const uint8_t, c_wlan_bssid_len> bssid, uint64_t sessionId)
     {
         get()->result_code = WI_EnumValue(resultCode);
         memcpy_s(get()->bssid, sizeof get()->bssid, bssid.data(), bssid.size());
@@ -273,7 +273,7 @@ public:
         get()->scan_complete = scanComplete;
     }
 
-    gsl::span<uint8_t> getIes() const
+    std::span<uint8_t> getIes() const
     {
         return m_ies;
     }
@@ -286,7 +286,7 @@ public:
     }
 
 private:
-    gsl::span<uint8_t> m_ies;
+    std::span<uint8_t> m_ies;
 };
 
 /// @brief Builder class to create a scan response

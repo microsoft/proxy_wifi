@@ -5,6 +5,7 @@
 #include <libloaderapi.h>
 #include <wil/resource.h>
 #include <functional>
+#include <string>
 
 template <class T>
 class DynamicFunction;

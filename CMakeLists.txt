@@ -10,19 +10,6 @@ option(MICROSOFT_TELEMETRY "Enable Microsoft telemetry collection" OFF)
 
 include(FetchContent)
 
-# Configure GSL dependency
-FetchContent_Declare(GSL
-    GIT_REPOSITORY "https://github.com/microsoft/GSL"
-    GIT_TAG "v3.1.0"
-    GIT_SHALLOW ON
-)
-
-FetchContent_GetProperties(GSL)
-if(NOT gsl_POPULATED)
-    FetchContent_Populate(GSL)
-    add_subdirectory(${gsl_SOURCE_DIR} ${gsl_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
-
 # Configure WIL dependency
 set(WIL_BUILD_TESTS OFF CACHE INTERNAL "Turn off wil tests")
 set(WIL_BUILD_PACKAGING OFF CACHE INTERNAL "Turn off wil packaging")

@@ -5,8 +5,9 @@
 #include <Windows.h>
 #include <wlanapi.h>
 #include <wil/common.h>
-#include <gsl/span>
 
+#include <array>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -186,7 +187,7 @@ public:
     {
     }
 
-    Ssid(const gsl::span<const uint8_t> rhs) :
+    Ssid(const std::span<const uint8_t> rhs) :
         m_ssid{rhs.begin(), rhs.end()}
     {
         if (rhs.size() > c_wlan_max_ssid_len)
