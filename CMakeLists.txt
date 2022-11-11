@@ -24,7 +24,7 @@ FetchContent_MakeAvailable(WIL)
 
 # Default to debug build if unspecified
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug")
+    set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
 # Rationalize TARGET_PLATFORM
@@ -52,18 +52,19 @@ add_compile_definitions(
     WIN32_LEAN_AND_MEAN
 )
 
-if (MICROSOFT_TELEMETRY)
+if(MICROSOFT_TELEMETRY)
     add_compile_definitions(MICROSOFT_TELEMETRY)
 endif()
 
 add_subdirectory(lib)
 add_subdirectory(util)
 
-if (PROJECT_IS_TOP_LEVEL)
-  add_subdirectory(cmdline)
+if(PROJECT_IS_TOP_LEVEL)
+    add_subdirectory(cmdline)
 
-  include(CTest)
-  if (BUILD_TESTING)
-      add_subdirectory(test)
-  endif()
+    include(CTest)
+
+    if(BUILD_TESTING)
+        add_subdirectory(test)
+    endif()
 endif()
