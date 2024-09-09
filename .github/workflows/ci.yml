@@ -34,7 +34,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: ${{ matrix.codeql }}
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: cpp
 
