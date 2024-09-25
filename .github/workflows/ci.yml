@@ -34,7 +34,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: ${{ matrix.codeql }}
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v3
       with:
         languages: cpp
 
@@ -52,12 +52,12 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: ${{ matrix.codeql }}
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
     - name: Collect test artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: proxy-wifi-test-${{ matrix.arch }}-${{ matrix.build_type }}
+        name: proxy-wifi-test-${{ matrix.arch }}-${{ matrix.build_type }}-${{ matrix.sdk_version }}
         path: build/test/${{ matrix.build_type }}/proxy-wifi-test.exe
 
   run_unit_tests:
@@ -66,15 +66,15 @@ jobs:
     steps:
     - name: Download test artifact
       id: download
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4
       with:
-        name: proxy-wifi-test-x64-Debug
+        name: proxy-wifi-test-x64-Debug-19041
 
     - name: Run tests
       run: ${{steps.download.outputs.download-path}}/proxy-wifi-test.exe -s >> test-logs.txt
 
     - name: Collect test logs on failure
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: test-logs
