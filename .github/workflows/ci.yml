@@ -57,7 +57,7 @@ jobs:
     - name: Collect test artifact
       uses: actions/upload-artifact@v4
       with:
-        name: proxy-wifi-test-${{ matrix.arch }}-${{ matrix.build_type }}
+        name: proxy-wifi-test-${{ matrix.arch }}-${{ matrix.build_type }}-${{ matrix.sdk_version }}
         path: build/test/${{ matrix.build_type }}/proxy-wifi-test.exe
 
   run_unit_tests:
@@ -68,7 +68,7 @@ jobs:
       id: download
       uses: actions/download-artifact@v4
       with:
-        name: proxy-wifi-test-x64-Debug
+        name: proxy-wifi-test-x64-Debug-19041
 
     - name: Run tests
       run: ${{steps.download.outputs.download-path}}/proxy-wifi-test.exe -s >> test-logs.txt
